@@ -1,0 +1,11 @@
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\libborsh-ec27ff4cc74a261e.rmeta: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\hint.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema_helpers.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\helpers.rs
+
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\borsh-ec27ff4cc74a261e.d: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\hint.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema_helpers.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\helpers.rs
+
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src/lib.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\mod.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\de\hint.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\schema_helpers.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\mod.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\borsh-0.9.3\src\ser\helpers.rs:

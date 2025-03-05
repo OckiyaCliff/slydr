@@ -1,0 +1,9 @@
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\libark_serialize-becd79c970029786.rmeta: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\error.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\flags.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\impls.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\../README.md
+
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\ark_serialize-becd79c970029786.d: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\error.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\flags.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\impls.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\../README.md
+
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\lib.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\error.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\flags.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\impls.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ark-serialize-0.4.2\src\../README.md:

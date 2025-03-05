@@ -1,0 +1,9 @@
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\libppv_lite86-b89b65889196f0c1.rmeta: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\soft.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\types.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\sse2.rs
+
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\ppv_lite86-b89b65889196f0c1.d: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\soft.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\types.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\mod.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\sse2.rs
+
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src/lib.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\soft.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\types.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\mod.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\ppv-lite86-0.2.20\src\x86_64\sse2.rs:

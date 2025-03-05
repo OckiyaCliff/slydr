@@ -1,0 +1,10 @@
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\libgetrandom-1883511ae0c3904b.rmeta: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\util.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\custom.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error_impls.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\windows.rs
+
+C:\Users\Ockiya Cliff\Downloads\slydr\anchor\target\debug\deps\getrandom-1883511ae0c3904b.d: C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src/lib.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\util.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\custom.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error_impls.rs C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\windows.rs
+
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src/lib.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\util.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\custom.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\error_impls.rs:
+C:\Users\Ockiya\ Cliff\.cargo\registry\src\index.crates.io-6f17d22bba15001f\getrandom-0.2.15\src\windows.rs:
