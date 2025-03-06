@@ -1,4 +1,3 @@
-```markdown
 # **Slydr**  
 **Empowering Creators and Fans Through Collaborative Monetization**  
 
