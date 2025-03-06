@@ -1,133 +1,143 @@
+"use client"
+
 import Link from "next/link"
+import { Twitter, Instagram, Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Twitter, Instagram, Youtube, Github } from "lucide-react"
 
 export default function Footer() {
   return (
-    <footer className="border-t bg-muted/40">
-      <div className="container px-4 py-12 md:py-16 lg:py-20">
-        <div className="grid gap-8 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
-          <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2 text-lg font-semibold">
+    <footer className="w-full border-t bg-background">
+      <div className="container flex flex-col gap-8 py-12 md:py-16">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4 lg:grid-cols-5">
+          <div className="flex flex-col gap-2 md:col-span-2">
+            <Link href="/" className="text-xl font-bold">
               <span className="text-primary">Slydr</span>
             </Link>
-            <p className="mt-4 text-sm text-muted-foreground max-w-xs">
-              A blockchain-powered platform where creators can sell resale rights to their exclusive content, allowing
-              fans to promote and resell it while sharing royalties.
+            <p className="text-sm text-muted-foreground max-w-md">
+              A decentralized marketplace for digital content with resale rights. Buy, sell, and earn on the Slydr
+              platform.
             </p>
-            <div className="mt-6 flex gap-4">
+            <div className="flex gap-2 mt-2">
               <Button variant="ghost" size="icon" asChild>
-                <Link href="https://twitter.com">
+                <Link href="https://twitter.com" target="_blank" rel="noreferrer">
                   <Twitter className="h-4 w-4" />
                   <span className="sr-only">Twitter</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="icon" asChild>
-                <Link href="https://instagram.com">
+                <Link href="https://instagram.com" target="_blank" rel="noreferrer">
                   <Instagram className="h-4 w-4" />
                   <span className="sr-only">Instagram</span>
                 </Link>
               </Button>
               <Button variant="ghost" size="icon" asChild>
-                <Link href="https://youtube.com">
-                  <Youtube className="h-4 w-4" />
-                  <span className="sr-only">YouTube</span>
-                </Link>
-              </Button>
-              <Button variant="ghost" size="icon" asChild>
-                <Link href="https://github.com">
+                <Link href="https://github.com" target="_blank" rel="noreferrer">
                   <Github className="h-4 w-4" />
                   <span className="sr-only">GitHub</span>
                 </Link>
               </Button>
             </div>
           </div>
-          <div>
-            <h3 className="text-sm font-medium">Platform</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link href="/marketplace" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Marketplace
-                </Link>
-              </li>
-              <li>
-                <Link href="/creators" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Creators
-                </Link>
-              </li>
-              <li>
-                <Link href="/learn" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Learn
-                </Link>
-              </li>
-              <li>
-                <Link href="/about" className="text-muted-foreground hover:text-foreground transition-colors">
-                  About
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Resources</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link href="/docs" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Documentation
-                </Link>
-              </li>
-              <li>
-                <Link href="/guides" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Guides
-                </Link>
-              </li>
-              <li>
-                <Link href="/faq" className="text-muted-foreground hover:text-foreground transition-colors">
-                  FAQ
-                </Link>
-              </li>
-              <li>
-                <Link href="/support" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Support
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Company</h3>
-            <ul className="mt-4 space-y-2 text-sm">
-              <li>
-                <Link href="/team" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Team
-                </Link>
-              </li>
-              <li>
-                <Link href="/careers" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Careers
-                </Link>
-              </li>
-              <li>
-                <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Privacy Policy
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
-                  Terms of Service
-                </Link>
-              </li>
-            </ul>
+          <div className="grid grid-cols-1 gap-10 sm:grid-cols-3 md:col-span-2 lg:col-span-3">
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-medium">Resources</h3>
+              <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/docs" className="hover:text-foreground">
+                    Documentation
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/guides" className="hover:text-foreground">
+                    Guides
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/faq" className="hover:text-foreground">
+                    FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/support" className="hover:text-foreground">
+                    Support
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/resources" className="hover:text-foreground">
+                    Resources Hub
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-medium">Company</h3>
+              <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/about" className="hover:text-foreground">
+                    About
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/team" className="hover:text-foreground">
+                    Team
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/careers" className="hover:text-foreground">
+                    Careers
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/privacy" className="hover:text-foreground">
+                    Privacy Policy
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/terms" className="hover:text-foreground">
+                    Terms of Service
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-medium">Platform</h3>
+              <ul className="flex flex-col gap-2 text-sm text-muted-foreground">
+                <li>
+                  <Link href="/marketplace" className="hover:text-foreground">
+                    Marketplace
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/creators" className="hover:text-foreground">
+                    Creators
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/learn" className="hover:text-foreground">
+                    Learn
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/trending" className="hover:text-foreground">
+                    Trending
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
-        <div className="mt-12 border-t pt-8">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <p className="text-sm text-muted-foreground">© {new Date().getFullYear()} Slydr. All rights reserved.</p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <Input type="email" placeholder="Subscribe to newsletter" className="w-[240px]" />
-                <Button>Subscribe</Button>
-              </div>
-            </div>
+        <div className="flex flex-col gap-4 sm:flex-row justify-between items-center pt-8 border-t">
+          <p className="text-sm text-muted-foreground">&copy; {new Date().getFullYear()} Slydr. All rights reserved.</p>
+          <div className="flex gap-4 text-sm text-muted-foreground">
+            <Link href="/privacy" className="hover:text-foreground">
+              Privacy
+            </Link>
+            <Link href="/terms" className="hover:text-foreground">
+              Terms
+            </Link>
+            <Link href="/cookies" className="hover:text-foreground">
+              Cookies
+            </Link>
           </div>
         </div>
       </div>

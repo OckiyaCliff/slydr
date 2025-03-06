@@ -178,7 +178,10 @@ export default function AboutPage() {
             <CardHeader className="pb-2">
               <div className="mx-auto mb-4">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src="https://ik.imagekit.io/y6cdhyax5/WhatsApp%20Image%202024-12-10%20at%2008(1).55?updatedAt=1741211857493" alt="Alex Chen" />
+                  <AvatarImage
+                    src="https://ik.imagekit.io/y6cdhyax5/WhatsApp%20Image%202024-12-10%20at%2008(1).55?updatedAt=1741211857493"
+                    alt="Alex Chen"
+                  />
                   <AvatarFallback>AC</AvatarFallback>
                 </Avatar>
               </div>
@@ -190,28 +193,23 @@ export default function AboutPage() {
                 Former tech executive with a passion for blockchain and creator empowerment.
               </p>
               <div className="flex justify-center gap-4">
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="icon"
-                >
+                <Button asChild variant="ghost" size="icon">
                   <a href="https://x.com/ObaOFArt" target="_blank" rel="noopener noreferrer">
                     <Twitter className="h-5 w-5" />
                     <span className="sr-only">Twitter</span>
                   </a>
                 </Button>
-                <Button
-                  asChild
-                  variant="ghost"
-                  size="icon"
-                >
-                  <a href="https://www.linkedin.com/in/ockiya-cliff-83534522b/" target="_blank" rel="noopener noreferrer">
+                <Button asChild variant="ghost" size="icon">
+                  <a
+                    href="https://www.linkedin.com/in/ockiya-cliff-83534522b/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <Linkedin className="h-5 w-5" />
                     <span className="sr-only">LinkedIn</span>
                   </a>
                 </Button>
               </div>
-
             </CardContent>
           </Card>
 

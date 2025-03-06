@@ -46,7 +46,7 @@ export const idl = {
         },
         {
           name: "platform",
-          isMut: false,
+          isMut: true,
           isSigner: false,
         },
         {
@@ -71,6 +71,68 @@ export const idl = {
         {
           name: "royaltyPercentage",
           type: "u8",
+        },
+        {
+          name: "rentalEnabled",
+          type: "bool",
+        },
+        {
+          name: "rentalPrice",
+          type: "u64",
+        },
+        {
+          name: "rentalDuration",
+          type: "i64",
+        },
+        {
+          name: "subscriptionTier",
+          type: "u8",
+        },
+      ],
+    },
+    {
+      name: "updateContent",
+      accounts: [
+        {
+          name: "content",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "creator",
+          isMut: true,
+          isSigner: true,
+        },
+        {
+          name: "systemProgram",
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [
+        {
+          name: "price",
+          type: { option: "u64" },
+        },
+        {
+          name: "active",
+          type: { option: "bool" },
+        },
+        {
+          name: "rentalEnabled",
+          type: { option: "bool" },
+        },
+        {
+          name: "rentalPrice",
+          type: { option: "u64" },
+        },
+        {
+          name: "rentalDuration",
+          type: { option: "i64" },
+        },
+        {
+          name: "subscriptionTier",
+          type: { option: "u8" },
         },
       ],
     },
@@ -111,6 +173,73 @@ export const idl = {
       args: [],
     },
     {
+      name: "rentContent",
+      accounts: [
+        {
+          name: "content",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "renter",
+          isMut: true,
+          isSigner: true,
+        },
+        {
+          name: "creator",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "platform",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "rental",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "systemProgram",
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [],
+    },
+    {
+      name: "subscribe",
+      accounts: [
+        {
+          name: "subscriber",
+          isMut: true,
+          isSigner: true,
+        },
+        {
+          name: "platform",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "subscription",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "systemProgram",
+          isMut: false,
+          isSigner: false,
+        },
+      ],
+      args: [
+        {
+          name: "tier",
+          type: "u8",
+        },
+      ],
+    },
+    {
       name: "resellContent",
       accounts: [
         {
@@ -139,7 +268,12 @@ export const idl = {
           isSigner: false,
         },
         {
-          name: "purchase",
+          name: "sellerPurchase",
+          isMut: false,
+          isSigner: false,
+        },
+        {
+          name: "buyerPurchase",
           isMut: true,
           isSigner: false,
         },
@@ -219,6 +353,22 @@ export const idl = {
             name: "createdAt",
             type: "i64",
           },
+          {
+            name: "rentalEnabled",
+            type: "bool",
+          },
+          {
+            name: "rentalPrice",
+            type: "u64",
+          },
+          {
+            name: "rentalDuration",
+            type: "i64",
+          },
+          {
+            name: "subscriptionTier",
+            type: "u8",
+          },
         ],
       },
     },
@@ -247,8 +397,294 @@ export const idl = {
             name: "resaleRights",
             type: "bool",
           },
+          {
+            name: "purchaseType",
+            type: {
+              defined: "PurchaseType",
+            },
+          },
+          {
+            name: "expiration",
+            type: { option: "i64" },
+          },
         ],
       },
+    },
+    {
+      name: "Subscription",
+      type: {
+        kind: "struct",
+        fields: [
+          {
+            name: "subscriber",
+            type: "publicKey",
+          },
+          {
+            name: "tier",
+            type: "u8",
+          },
+          {
+            name: "startTime",
+            type: "i64",
+          },
+          {
+            name: "expirationTime",
+            type: "i64",
+          },
+          {
+            name: "active",
+            type: "bool",
+          },
+        ],
+      },
+    },
+  ],
+  types: [
+    {
+      name: "PurchaseType",
+      type: {
+        kind: "enum",
+        variants: [
+          {
+            name: "FullPurchase",
+          },
+          {
+            name: "Rental",
+          },
+        ],
+      },
+    },
+  ],
+  events: [
+    {
+      name: "PlatformInitialized",
+      fields: [
+        {
+          name: "authority",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "platformFee",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "ContentCreated",
+      fields: [
+        {
+          name: "contentId",
+          type: "string",
+          index: false,
+        },
+        {
+          name: "creator",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "royaltyPercentage",
+          type: "u8",
+          index: false,
+        },
+        {
+          name: "rentalEnabled",
+          type: "bool",
+          index: false,
+        },
+        {
+          name: "subscriptionTier",
+          type: "u8",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "ContentUpdated",
+      fields: [
+        {
+          name: "contentId",
+          type: "string",
+          index: false,
+        },
+        {
+          name: "creator",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "active",
+          type: "bool",
+          index: false,
+        },
+        {
+          name: "rentalEnabled",
+          type: "bool",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "ContentPurchased",
+      fields: [
+        {
+          name: "contentId",
+          type: "string",
+          index: false,
+        },
+        {
+          name: "buyer",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "creator",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "ContentRented",
+      fields: [
+        {
+          name: "contentId",
+          type: "string",
+          index: false,
+        },
+        {
+          name: "renter",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "creator",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "expiration",
+          type: "i64",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "ContentResold",
+      fields: [
+        {
+          name: "contentId",
+          type: "string",
+          index: false,
+        },
+        {
+          name: "seller",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "buyer",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "creator",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "royaltyAmount",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
+    },
+    {
+      name: "SubscriptionCreated",
+      fields: [
+        {
+          name: "subscriber",
+          type: "publicKey",
+          index: false,
+        },
+        {
+          name: "tier",
+          type: "u8",
+          index: false,
+        },
+        {
+          name: "price",
+          type: "u64",
+          index: false,
+        },
+        {
+          name: "expiration",
+          type: "i64",
+          index: false,
+        },
+        {
+          name: "timestamp",
+          type: "i64",
+          index: false,
+        },
+      ],
     },
   ],
   errors: [
@@ -276,6 +712,51 @@ export const idl = {
       code: 6004,
       name: "NoResaleRights",
       msg: "No resale rights for this content",
+    },
+    {
+      code: 6005,
+      name: "InvalidContentId",
+      msg: "Content ID cannot be empty",
+    },
+    {
+      code: 6006,
+      name: "InvalidArweaveId",
+      msg: "Arweave ID cannot be empty",
+    },
+    {
+      code: 6007,
+      name: "InvalidPrice",
+      msg: "Price must be greater than 0",
+    },
+    {
+      code: 6008,
+      name: "InvalidFeeAmount",
+      msg: "Platform fee must be greater than 0",
+    },
+    {
+      code: 6009,
+      name: "RentalNotEnabled",
+      msg: "Rental is not enabled for this content",
+    },
+    {
+      code: 6010,
+      name: "InvalidRentalPrice",
+      msg: "Rental price must be greater than 0",
+    },
+    {
+      code: 6011,
+      name: "InvalidRentalDuration",
+      msg: "Rental duration must be greater than 0",
+    },
+    {
+      code: 6012,
+      name: "PurchaseExpired",
+      msg: "Purchase has expired",
+    },
+    {
+      code: 6013,
+      name: "InvalidSubscriptionTier",
+      msg: "Invalid subscription tier",
     },
   ],
 }

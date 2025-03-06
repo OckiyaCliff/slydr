@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useWallet } from "@/context/wallet-context"
 
 // Define user types
-export type UserRole = "creator" | "fan" | "admin"
+export type UserRole = "creator" | "fan" | "admin" | "artist" | "musician" | "writer" | "podcaster" | "filmmaker"
 
 export interface UserProfile {
   id: string
@@ -36,7 +36,7 @@ interface UserContextType {
   isLoading: boolean
   error: Error | null
   login: () => Promise<void>
-  logout: () => void
+  logout: () => () => void
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
 }
 
@@ -161,7 +161,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         login,
-        logout,
+        logout: logout,
         updateProfile,
       }}
     >

@@ -62,6 +62,10 @@ export class AnchorService {
    * @param arweaveId The Arweave transaction ID
    * @param price The content price (in lamports)
    * @param royaltyPercentage The royalty percentage (0-100)
+   * @param rentalEnabled Whether rental is enabled
+   * @param rentalPrice The rental price (in lamports)
+   * @param rentalDuration The rental duration (in seconds)
+   * @param subscriptionTier The subscription tier required (0 for none)
    * @returns Transaction signature
    */
   async createContent(
@@ -70,6 +74,10 @@ export class AnchorService {
     arweaveId: string,
     price: number,
     royaltyPercentage: number,
+    rentalEnabled = false,
+    rentalPrice = 0,
+    rentalDuration = 0,
+    subscriptionTier = 0,
   ): Promise<string> {
     if (!this.program || !this.provider) {
       throw new Error("Program not initialized")
@@ -86,11 +94,80 @@ export class AnchorService {
 
     // Call the createContent instruction
     const tx = await this.program.methods
-      .createContent(contentId, arweaveId, new BN(price), royaltyPercentage)
+      .createContent(
+        contentId,
+        arweaveId,
+        new BN(price),
+        royaltyPercentage,
+        rentalEnabled,
+        new BN(rentalPrice),
+        new BN(rentalDuration),
+        subscriptionTier,
+      )
       .accounts({
         content: contentPda,
         creator,
         platform: platformPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc()
+
+    return tx
+  }
+
+  /**
+   * Update existing content
+   * @param creator The creator's public key
+   * @param contentId The content ID
+   * @param price Optional new price
+   * @param active Optional new active status
+   * @param rentalEnabled Optional new rental enabled status
+   * @param rentalPrice Optional new rental price
+   * @param rentalDuration Optional new rental duration
+   * @param subscriptionTier Optional new subscription tier
+   * @returns Transaction signature
+   */
+  async updateContent(
+    creator: PublicKey,
+    contentId: string,
+    price?: number,
+    active?: boolean,
+    rentalEnabled?: boolean,
+    rentalPrice?: number,
+    rentalDuration?: number,
+    subscriptionTier?: number,
+  ): Promise<string> {
+    if (!this.program || !this.provider) {
+      throw new Error("Program not initialized")
+    }
+
+    // Derive the content PDA
+    const [contentPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("content"), Buffer.from(contentId)],
+      this.programId,
+    )
+
+    // Prepare optional arguments
+    const priceOption = price !== undefined ? new BN(price) : null
+    const activeOption = active !== undefined ? active : null
+    const rentalEnabledOption = rentalEnabled !== undefined ? rentalEnabled : null
+    const rentalPriceOption = rentalPrice !== undefined ? new BN(rentalPrice) : null
+    const rentalDurationOption = rentalDuration !== undefined ? new BN(rentalDuration) : null
+    const subscriptionTierOption = subscriptionTier !== undefined ? subscriptionTier : null
+
+    // Call the updateContent instruction
+    const tx = await this.program.methods
+      .updateContent(
+        priceOption,
+        activeOption,
+        rentalEnabledOption,
+        rentalPriceOption,
+        rentalDurationOption,
+        subscriptionTierOption,
+      )
+      .accounts({
+        content: contentPda,
+        creator,
         systemProgram: SystemProgram.programId,
       })
       .rpc()
@@ -145,6 +222,86 @@ export class AnchorService {
   }
 
   /**
+   * Rent content
+   * @param renter The renter's public key
+   * @param contentId The content ID
+   * @returns Transaction signature
+   */
+  async rentContent(renter: PublicKey, contentId: string): Promise<string> {
+    if (!this.program || !this.provider) {
+      throw new Error("Program not initialized")
+    }
+
+    // Derive the platform PDA
+    const [platformPda] = await PublicKey.findProgramAddress([Buffer.from("platform")], this.programId)
+
+    // Derive the content PDA
+    const [contentPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("content"), Buffer.from(contentId)],
+      this.programId,
+    )
+
+    // Get content data to find the creator
+    const contentAccount = await this.program.account.content.fetch(contentPda)
+    const creator = contentAccount.creator
+
+    // Derive the rental PDA
+    const [rentalPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("rental"), renter.toBuffer(), contentPda.toBuffer()],
+      this.programId,
+    )
+
+    // Call the rentContent instruction
+    const tx = await this.program.methods
+      .rentContent()
+      .accounts({
+        content: contentPda,
+        renter,
+        creator,
+        platform: platformPda,
+        rental: rentalPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc()
+
+    return tx
+  }
+
+  /**
+   * Subscribe to a tier
+   * @param subscriber The subscriber's public key
+   * @param tier The subscription tier (1-3)
+   * @returns Transaction signature
+   */
+  async subscribe(subscriber: PublicKey, tier: number): Promise<string> {
+    if (!this.program || !this.provider) {
+      throw new Error("Program not initialized")
+    }
+
+    // Derive the platform PDA
+    const [platformPda] = await PublicKey.findProgramAddress([Buffer.from("platform")], this.programId)
+
+    // Derive the subscription PDA
+    const [subscriptionPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("subscription"), subscriber.toBuffer()],
+      this.programId,
+    )
+
+    // Call the subscribe instruction
+    const tx = await this.program.methods
+      .subscribe(tier)
+      .accounts({
+        subscriber,
+        platform: platformPda,
+        subscription: subscriptionPda,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc()
+
+    return tx
+  }
+
+  /**
    * Resell content
    * @param seller The seller's public key
    * @param buyer The buyer's public key
@@ -170,8 +327,14 @@ export class AnchorService {
     const contentAccount = await this.program.account.content.fetch(contentPda)
     const creator = contentAccount.creator
 
-    // Derive the purchase PDA
-    const [purchasePda] = await PublicKey.findProgramAddress(
+    // Derive the seller's purchase PDA
+    const [sellerPurchasePda] = await PublicKey.findProgramAddress(
+      [Buffer.from("purchase"), seller.toBuffer(), contentPda.toBuffer()],
+      this.programId,
+    )
+
+    // Derive the buyer's purchase PDA
+    const [buyerPurchasePda] = await PublicKey.findProgramAddress(
       [Buffer.from("purchase"), buyer.toBuffer(), contentPda.toBuffer()],
       this.programId,
     )
@@ -185,7 +348,8 @@ export class AnchorService {
         buyer,
         creator,
         platform: platformPda,
-        purchase: purchasePda,
+        sellerPurchase: sellerPurchasePda,
+        buyerPurchase: buyerPurchasePda,
         systemProgram: SystemProgram.programId,
       })
       .rpc()
@@ -264,6 +428,53 @@ export class AnchorService {
   }
 
   /**
+   * Get rental details
+   * @param renter The renter's public key
+   * @param contentId The content ID
+   * @returns Rental account data
+   */
+  async getRentalDetails(renter: PublicKey, contentId: string): Promise<any> {
+    if (!this.program) {
+      throw new Error("Program not initialized")
+    }
+
+    // Derive the content PDA
+    const [contentPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("content"), Buffer.from(contentId)],
+      this.programId,
+    )
+
+    // Derive the rental PDA
+    const [rentalPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("rental"), renter.toBuffer(), contentPda.toBuffer()],
+      this.programId,
+    )
+
+    // Fetch the rental account
+    return await this.program.account.purchase.fetch(rentalPda)
+  }
+
+  /**
+   * Get subscription details
+   * @param subscriber The subscriber's public key
+   * @returns Subscription account data
+   */
+  async getSubscriptionDetails(subscriber: PublicKey): Promise<any> {
+    if (!this.program) {
+      throw new Error("Program not initialized")
+    }
+
+    // Derive the subscription PDA
+    const [subscriptionPda] = await PublicKey.findProgramAddress(
+      [Buffer.from("subscription"), subscriber.toBuffer()],
+      this.programId,
+    )
+
+    // Fetch the subscription account
+    return await this.program.account.subscription.fetch(subscriptionPda)
+  }
+
+  /**
    * Get all purchases by buyer
    * @param buyer The buyer's public key
    * @returns Array of purchase accounts
@@ -284,6 +495,35 @@ export class AnchorService {
     ])
 
     return purchaseAccounts
+  }
+
+  /**
+   * Check if a subscription is active and valid for a given tier
+   * @param subscriber The subscriber's public key
+   * @param requiredTier The required subscription tier
+   * @returns Boolean indicating if the subscription is valid
+   */
+  async isSubscriptionValid(subscriber: PublicKey, requiredTier: number): Promise<boolean> {
+    try {
+      const subscription = await this.getSubscriptionDetails(subscriber)
+
+      // Check if subscription is active
+      if (!subscription.active) {
+        return false
+      }
+
+      // Check if subscription has expired
+      const currentTime = Math.floor(Date.now() / 1000)
+      if (currentTime > subscription.expirationTime.toNumber()) {
+        return false
+      }
+
+      // Check if subscription tier is sufficient
+      return subscription.tier >= requiredTier
+    } catch (error) {
+      // If subscription doesn't exist or there's an error
+      return false
+    }
   }
 }
 

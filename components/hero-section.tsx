@@ -61,7 +61,10 @@ export default function HeroSection() {
               </div>
               <div
                 className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: "url('/placeholder.svg?height=500&width=500')" }}
+                style={{
+                  backgroundImage:
+                    "url('https://plus.unsplash.com/premium_photo-1683120931945-ae07bb87825c?q=80&w=1946&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D')",
+                }}
               />
             </motion.div>
           </div>
