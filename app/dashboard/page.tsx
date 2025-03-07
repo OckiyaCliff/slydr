@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import Image from "next/image"
 import { OnboardingFlow } from "@/components/onboarding/onboarding-flow"
+import { AIRecommendations } from "@/components/ai/ai-recommendations"
+import { AIAssistantButton } from "@/components/ai/ai-assistant-button"
 import type { ContentMetadata } from "@/services/arweave-service"
 
 // Import role-specific dashboards
@@ -21,8 +23,21 @@ import WriterDashboard from "./writer-dashboard"
 import PodcasterDashboard from "./podcaster-dashboard"
 import FilmmakerDashboard from "./filmmaker-dashboard"
 
-export default function DashboardPage() {
-  const { user, isLoading: userLoading } = useUser()
+export default function Dashboard() {
+  const { user, isLoading } = useUser()
+  const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (mounted && !isLoading && !user) {
+      router.push("/")
+    }
+  }, [user, isLoading, router, mounted])
+
   const { publicKey, connected } = useWallet()
   const {
     userContents,
@@ -32,20 +47,12 @@ export default function DashboardPage() {
     fetchUserContents,
     fetchUserPurchases,
   } = useContentStore()
-  const router = useRouter()
   const [stats, setStats] = useState({
     revenue: 0,
     sales: 0,
     creations: 0,
     followers: 0,
   })
-
-  // Redirect if not logged in
-  useEffect(() => {
-    if (!userLoading && !user) {
-      router.push("/")
-    }
-  }, [userLoading, user, router])
 
   // Fetch user content and purchases when user is loaded
   useEffect(() => {
@@ -63,12 +70,11 @@ export default function DashboardPage() {
     }
   }, [user, fetchUserContents, fetchUserPurchases])
 
-  if (userLoading || !user) {
-    return <div className="container py-12">Loading dashboard...</div>
+  if (!mounted || isLoading || !user) {
+    return null
   }
 
-  // Render role-specific dashboard based on user role
-  const renderRoleDashboard = () => {
+  const renderDashboardByRole = () => {
     switch (user.role) {
       case "musician":
         return <MusicianDashboard user={user} stats={stats} contents={userContents} />
@@ -81,8 +87,12 @@ export default function DashboardPage() {
       case "filmmaker":
         return <FilmmakerDashboard user={user} stats={stats} contents={userContents} />
       default:
-        return <FanDashboard />
+        return <MusicianDashboard />
     }
+  }
+
+  const truncateAddress = (address: string) => {
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
   }
 
   // Default Fan Dashboard
@@ -97,6 +107,7 @@ export default function DashboardPage() {
           <Button asChild variant="outline">
             <Link href="/profile">View Profile</Link>
           </Button>
+          <AIAssistantButton buttonText="AI Help" initialMessage="How can I get started with Slydr?" />
           <Button asChild>
             <Link href="/marketplace">
               <Plus className="mr-2 h-4 w-4" />
@@ -149,38 +160,46 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle>Wallet</CardTitle>
-          <CardDescription>Your connected wallet and balance</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center space-x-4">
-            <Wallet className="h-10 w-10 text-primary" />
-            <div>
-              <p className="text-sm font-medium">
-                {connected && publicKey ? truncateAddress(publicKey.toString()) : "Not connected"}
-              </p>
-              <p className="text-xs text-muted-foreground">Solana</p>
-            </div>
-          </div>
-          <div className="mt-6 space-y-2">
-            <div className="flex justify-between">
-              <p className="text-sm">Balance:</p>
-              <p className="text-sm font-medium">0.00 SOL</p>
-            </div>
-            <div className="flex justify-between">
-              <p className="text-sm">Pending:</p>
-              <p className="text-sm font-medium">0.00 SOL</p>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" className="w-full" disabled={!connected || !publicKey}>
-            View on Explorer
-          </Button>
-        </CardFooter>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-3 mb-8">
+        <div className="md:col-span-2">
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>Wallet</CardTitle>
+              <CardDescription>Your connected wallet and balance</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <Wallet className="h-10 w-10 text-primary" />
+                <div>
+                  <p className="text-sm font-medium">
+                    {connected && publicKey ? truncateAddress(publicKey.toString()) : "Not connected"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Solana</p>
+                </div>
+              </div>
+              <div className="mt-6 space-y-2">
+                <div className="flex justify-between">
+                  <p className="text-sm">Balance:</p>
+                  <p className="text-sm font-medium">0.00 SOL</p>
+                </div>
+                <div className="flex justify-between">
+                  <p className="text-sm">Pending:</p>
+                  <p className="text-sm font-medium">0.00 SOL</p>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="w-full" disabled={!connected || !publicKey}>
+                View on Explorer
+              </Button>
+            </CardFooter>
+          </Card>
+        </div>
+
+        <div>
+          <AIRecommendations />
+        </div>
+      </div>
 
       <Tabs defaultValue="collected">
         <TabsList className="grid w-full grid-cols-2">
@@ -201,33 +220,50 @@ export default function DashboardPage() {
           ) : (
             <div className="text-center py-12">
               <p className="text-muted-foreground">You haven't collected any items yet.</p>
-              <Button className="mt-4" asChild>
-                <Link href="/marketplace">Explore Marketplace</Link>
-              </Button>
+              <div className="flex justify-center gap-4 mt-4">
+                <Button asChild>
+                  <Link href="/marketplace">Explore Marketplace</Link>
+                </Button>
+                <AIAssistantButton
+                  buttonText="Get Recommendations"
+                  initialMessage="What content would you recommend for a new user?"
+                  variant="secondary"
+                />
+              </div>
             </div>
           )}
         </TabsContent>
         <TabsContent value="reselling" className="mt-6">
           <div className="text-center py-12">
             <p className="text-muted-foreground">You aren't reselling any items yet.</p>
-            <Button className="mt-4" asChild>
-              <Link href="/marketplace">Start Reselling</Link>
-            </Button>
+            <div className="flex justify-center gap-4 mt-4">
+              <Button asChild>
+                <Link href="/marketplace">Start Reselling</Link>
+              </Button>
+              <AIAssistantButton
+                buttonText="How Reselling Works"
+                initialMessage="Explain how reselling works on Slydr"
+                variant="secondary"
+              />
+            </div>
           </div>
         </TabsContent>
       </Tabs>
     </div>
   )
 
-  const truncateAddress = (address: string) => {
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-  }
-
   return (
-    <>
+    <div className="container mx-auto px-4 py-8">
       <OnboardingFlow />
-      {renderRoleDashboard()}
-    </>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="md:col-span-2">{renderDashboardByRole()}</div>
+        <div className="space-y-6">
+          <AIRecommendations />
+          {/* Other sidebar components */}
+        </div>
+      </div>
+      <AIAssistantButton />
+    </div>
   )
 }
 

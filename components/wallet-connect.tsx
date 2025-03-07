@@ -16,8 +16,7 @@ export default function WalletConnect() {
       await connect()
       await login()
 
-      // Show onboarding modal for new users
-      // In a real app, you'd check if this is the first login
+      // Show onboarding modal for new users AFTER successful wallet connection
       if (!user?.bio) {
         setShowOnboarding(true)
       }

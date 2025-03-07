@@ -13,8 +13,7 @@ export function OnboardingFlow() {
   // Check if user is new and needs onboarding
   useEffect(() => {
     if (!isLoading && user) {
-      // A simple way to check if user needs onboarding
-      // In a real app, you would have a proper isOnboarded flag in the user object
+      // Only show onboarding if the user is connected and needs onboarding
       const needsOnboarding = !user.bio || !user.displayName.includes(" ")
       if (needsOnboarding) {
         setShowOnboarding(true)

@@ -119,7 +119,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async () => {
     try {
-      await connect()
+      if (!connected) {
+        await connect()
+      }
       // The user profile will be fetched in the useEffect when connected changes
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to login"))
