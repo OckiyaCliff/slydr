@@ -52,7 +52,7 @@ export default function HeroSection() {
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="text-center p-6 bg-black/30 backdrop-blur-sm rounded-lg w-4/5">
                   <h3 className="text-xl font-bold text-white mb-2">Exclusive Digital Art</h3>
-                  <p className="text-white/80 text-sm mb-4">By Artist Name</p>
+                  <p className="text-white/80 text-sm mb-4">By unsplash</p>
                   <div className="flex justify-between items-center text-sm">
                     <span className="text-white">Price: 2.5 SOL</span>
                     <span className="text-primary font-medium">Resale: 15%</span>

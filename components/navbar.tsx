@@ -186,59 +186,65 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Resources dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-0 h-auto font-medium text-sm hover:bg-transparent">
-                  <span
-                    className={cn(
-                      "transition-colors hover:text-primary flex items-center gap-1",
-                      resourceItems.some((item) => pathname === item.href) && "text-primary",
-                    )}
-                  >
-                    Resources <ChevronDown className="h-4 w-4" />
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuGroup>
+            {/* Resources dropdown - Hover version */}
+            <div className="relative group">
+              <button className="p-0 h-auto font-medium text-sm hover:bg-transparent flex items-center gap-1 py-2">
+                <span
+                  className={cn(
+                    "transition-colors hover:text-primary flex items-center gap-1",
+                    resourceItems.some((item) => pathname === item.href) && "text-primary",
+                  )}
+                >
+                  Resources <ChevronDown className="h-4 w-4" />
+                </span>
+              </button>
+              <div className="absolute left-0 top-full z-50 hidden group-hover:block pt-2">
+                <div className="bg-background rounded-md border shadow-md w-48 p-2">
                   {resourceItems.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href} className={cn(pathname === item.href && "font-medium")}>
-                        {item.label}
-                      </Link>
-                    </DropdownMenuItem>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "block px-2 py-1.5 text-sm rounded-sm hover:bg-muted transition-colors",
+                        pathname === item.href && "font-medium",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
                   ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+              </div>
+            </div>
 
-            {/* About dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="p-0 h-auto font-medium text-sm hover:bg-transparent">
-                  <span
-                    className={cn(
-                      "transition-colors hover:text-primary flex items-center gap-1",
-                      aboutItems.some((item) => pathname === item.href) && "text-primary",
-                    )}
-                  >
-                    About <ChevronDown className="h-4 w-4" />
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-48">
-                <DropdownMenuGroup>
+            {/* About dropdown - Hover version */}
+            <div className="relative group">
+              <button className="p-0 h-auto font-medium text-sm hover:bg-transparent flex items-center gap-1 py-2">
+                <span
+                  className={cn(
+                    "transition-colors hover:text-primary flex items-center gap-1",
+                    aboutItems.some((item) => pathname === item.href) && "text-primary",
+                  )}
+                >
+                  About <ChevronDown className="h-4 w-4" />
+                </span>
+              </button>
+              <div className="absolute left-0 top-full z-50 hidden group-hover:block pt-2">
+                <div className="bg-background rounded-md border shadow-md w-48 p-2">
                   {aboutItems.map((item) => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href} className={cn(pathname === item.href && "font-medium")}>
-                        {item.label}
-                      </Link>
-                    </DropdownMenuItem>
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "block px-2 py-1.5 text-sm rounded-sm hover:bg-muted transition-colors",
+                        pathname === item.href && "font-medium",
+                      )}
+                    >
+                      {item.label}
+                    </Link>
                   ))}
-                </DropdownMenuGroup>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                </div>
+              </div>
+            </div>
           </nav>
         </div>
 
