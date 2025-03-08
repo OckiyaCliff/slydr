@@ -24,9 +24,10 @@ export interface OnboardingData {
 interface OnboardingModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onComplete?: (data: OnboardingData) => Promise<void>
 }
 
-export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
+export function OnboardingModal({ open, onOpenChange, onComplete }: OnboardingModalProps) {
   const { updateProfile } = useUser()
   const router = useRouter()
   const [step, setStep] = useState<"welcome" | "profile" | "role" | "complete">("welcome")
@@ -57,18 +58,20 @@ export function OnboardingModal({ open, onOpenChange }: OnboardingModalProps) {
   const handleComplete = async () => {
     setLoading(true)
     try {
-      // Update user profile with collected data
-      await updateProfile({
-        displayName: onboardingData.displayName,
-        bio: onboardingData.bio,
-        role: onboardingData.role as any, // Type casting here since we can't modify the UserRole in the context
-        // In a real app, you would upload the avatar and coverImage here
-        // and update the profile with the URLs
-      })
+      if (onComplete) {
+        await onComplete(onboardingData)
+      } else {
+        // Fallback to the old behavior
+        await updateProfile({
+          displayName: onboardingData.displayName,
+          bio: onboardingData.bio,
+          role: onboardingData.role as any,
+        })
 
-      // Close modal and redirect to appropriate dashboard
-      onOpenChange(false)
-      router.push("/dashboard")
+        // Close modal and redirect to appropriate dashboard
+        onOpenChange(false)
+        router.push("/dashboard")
+      }
     } catch (error) {
       console.error("Error updating profile:", error)
     } finally {
