@@ -14,7 +14,9 @@ export function OnboardingFlow() {
   useEffect(() => {
     if (!isLoading && user) {
       // Only show onboarding if the user is connected and needs onboarding
-      const needsOnboarding = !user.bio || !user.displayName.includes(" ")
+      // Check for incomplete profile (missing bio or proper display name)
+      const needsOnboarding = !user.bio || !user.display_name || user.display_name === user.username
+
       if (needsOnboarding) {
         setShowOnboarding(true)
       }
@@ -31,6 +33,7 @@ export function OnboardingFlow() {
     }
   }
 
+  // Don't render anything if user is loading or not logged in
   if (isLoading || !user) {
     return null
   }

@@ -1,292 +1,361 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useUser, type UserProfile } from "@/context/user-context"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { Pencil, Save, User, Twitter, Instagram, Globe, CheckCircle } from "lucide-react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useUser } from "@/context/user-context"
+import { Loader2, Edit, LogOut } from "lucide-react"
 
 export default function ProfilePage() {
-  const { user, isLoading, updateProfile } = useUser()
   const router = useRouter()
-  const [isEditing, setIsEditing] = useState(false)
-  const [formData, setFormData] = useState<Partial<UserProfile>>(user || {})
+  const { user, logout } = useUser()
+  const [contents, setContents] = useState([])
+  const [transactions, setTransactions] = useState([])
+  const [followers, setFollowers] = useState([])
+  const [following, setFollowing] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showFollowers, setShowFollowers] = useState(false)
+  const [showFollowing, setShowFollowing] = useState(false)
 
-  // Redirect if not logged in
-  if (!isLoading && !user) {
-    router.push("/")
-    return null
-  }
+  useEffect(() => {
+    const fetchUserData = async () => {
+      if (!user) return
 
-  if (isLoading || !user) {
-    return <div className="container py-12">Loading profile...</div>
-  }
+      try {
+        // Fetch user's content
+        const contentsResponse = await fetch(`/api/contents/creator/${user.id}`)
+        if (contentsResponse.ok) {
+          const contentsData = await contentsResponse.json()
+          setContents(contentsData)
+        }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target
+        // Fetch user's transactions
+        const transactionsResponse = await fetch(`/api/users/${user.id}/transactions`)
+        if (transactionsResponse.ok) {
+          const transactionsData = await transactionsResponse.json()
+          setTransactions(transactionsData)
+        }
 
-    if (name.includes(".")) {
-      const [parent, child] = name.split(".")
-      setFormData({
-        ...formData,
-        [parent]: {
-          ...((formData as any)[parent] || {}),
-          [child]: value,
-        },
-      })
-    } else {
-      setFormData({
-        ...formData,
-        [name]: value,
-      })
+        // Fetch followers
+        const followersResponse = await fetch(`/api/users/${user.id}/followers`)
+        if (followersResponse.ok) {
+          const followersData = await followersResponse.json()
+          setFollowers(followersData)
+        }
+
+        // Fetch following
+        const followingResponse = await fetch(`/api/users/${user.id}/following`)
+        if (followingResponse.ok) {
+          const followingData = await followingResponse.json()
+          setFollowing(followingData)
+        }
+      } catch (error) {
+        console.error("Error fetching user data:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
+
+    fetchUserData()
+  }, [user])
+
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Please connect your wallet</h1>
+          <p className="text-muted-foreground mb-4">You need to connect your wallet to view your profile.</p>
+          <Button onClick={() => router.push("/")}>Go to Home</Button>
+        </div>
+      </div>
+    )
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    await updateProfile(formData)
-    setIsEditing(false)
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
     <div className="container py-8">
-      <div className="relative w-full h-48 md:h-64 rounded-lg overflow-hidden mb-16">
+      {/* Cover Image */}
+      <div className="relative h-64 w-full rounded-lg overflow-hidden mb-16">
         <Image
-          src={user.coverImage || "/placeholder.svg?height=800&width=1600"}
-          alt="Cover"
+          src={user.cover_image_url || "/placeholder.svg?height=400&width=1200"}
+          alt={`${user.display_name}'s cover`}
           fill
           className="object-cover"
         />
-        <div className="absolute -bottom-16 left-8 border-4 border-background rounded-full">
-          <Avatar className="h-32 w-32">
-            <AvatarImage src={user.avatar} alt={user.displayName} />
-            <AvatarFallback>{user.displayName.charAt(0)}</AvatarFallback>
-          </Avatar>
+        <Button
+          variant="outline"
+          size="sm"
+          className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm"
+          onClick={() => router.push("/settings")}
+        >
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Profile
+        </Button>
+      </div>
+
+      {/* Profile Header */}
+      <div className="flex flex-col md:flex-row gap-8 mb-8">
+        <div className="relative -mt-24 md:-mt-32">
+          <div className="relative h-32 w-32 md:h-48 md:w-48 rounded-full overflow-hidden border-4 border-background">
+            <Image
+              src={user.avatar_url || "/placeholder.svg?height=200&width=200"}
+              alt={user.display_name}
+              fill
+              className="object-cover"
+            />
+          </div>
         </div>
-        <div className="absolute top-4 right-4">
-          <Button
-            variant="outline"
-            size="sm"
-            className="bg-background/80 backdrop-blur-sm"
-            onClick={() => setIsEditing(!isEditing)}
-          >
-            {isEditing ? (
-              <>
-                <Save className="h-4 w-4 mr-2" />
-                <span>Cancel</span>
-              </>
-            ) : (
-              <>
-                <Pencil className="h-4 w-4 mr-2" />
-                <span>Edit Profile</span>
-              </>
-            )}
-          </Button>
+
+        <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{user.display_name}</h1>
+              <p className="text-muted-foreground">@{user.username}</p>
+            </div>
+
+            <Button variant="outline" onClick={logout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Disconnect
+            </Button>
+          </div>
+
+          <div className="mt-4">
+            <p>{user.bio}</p>
+          </div>
+
+          <div className="flex items-center gap-6 mt-4">
+            <button onClick={() => setShowFollowers(true)} className="flex items-center gap-2 hover:underline">
+              <span className="font-bold">{followers.length}</span> Followers
+            </button>
+            <button onClick={() => setShowFollowing(true)} className="flex items-center gap-2 hover:underline">
+              <span className="font-bold">{following.length}</span> Following
+            </button>
+            <span className="flex items-center gap-2">
+              <span className="font-bold">{contents.length}</span> Creations
+            </span>
+          </div>
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        <div className="w-full md:w-1/3">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                {user.displayName}
-                {user.isVerified && <CheckCircle className="h-5 w-5 text-primary" />}
-              </CardTitle>
-              <CardDescription>@{user.username}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {isEditing ? (
-                <form onSubmit={handleSubmit}>
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="displayName">Display Name</Label>
-                      <Input
-                        id="displayName"
-                        name="displayName"
-                        value={formData.displayName || ""}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="username">Username</Label>
-                      <Input
-                        id="username"
-                        name="username"
-                        value={formData.username || ""}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="bio">Bio</Label>
-                      <Textarea id="bio" name="bio" value={formData.bio || ""} onChange={handleInputChange} rows={4} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="socialLinks.twitter">Twitter</Label>
-                      <Input
-                        id="socialLinks.twitter"
-                        name="socialLinks.twitter"
-                        value={formData.socialLinks?.twitter || ""}
-                        onChange={handleInputChange}
-                        placeholder="@username"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="socialLinks.instagram">Instagram</Label>
-                      <Input
-                        id="socialLinks.instagram"
-                        name="socialLinks.instagram"
-                        value={formData.socialLinks?.instagram || ""}
-                        onChange={handleInputChange}
-                        placeholder="@username"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="socialLinks.website">Website</Label>
-                      <Input
-                        id="socialLinks.website"
-                        name="socialLinks.website"
-                        value={formData.socialLinks?.website || ""}
-                        onChange={handleInputChange}
-                        placeholder="https://example.com"
-                      />
-                    </div>
-                    <Button type="submit" className="w-full">
-                      Save Changes
-                    </Button>
-                  </div>
-                </form>
-              ) : (
-                <>
-                  <p className="text-sm text-muted-foreground mb-4">{user.bio}</p>
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-sm">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span>Joined {new Date(user.joinedAt).toLocaleDateString()}</span>
-                    </div>
-                    {user.socialLinks.twitter && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Twitter className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.socialLinks.twitter}</span>
-                      </div>
-                    )}
-                    {user.socialLinks.instagram && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Instagram className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.socialLinks.instagram}</span>
-                      </div>
-                    )}
-                    {user.socialLinks.website && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Globe className="h-4 w-4 text-muted-foreground" />
-                        <span>{user.socialLinks.website}</span>
-                      </div>
-                    )}
-                  </div>
-                </>
-              )}
-            </CardContent>
-            <CardFooter className="border-t pt-4">
-              <div className="grid grid-cols-2 w-full gap-4 text-center">
-                <div>
-                  <p className="text-2xl font-bold">{user.stats.followers}</p>
-                  <p className="text-xs text-muted-foreground">Followers</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{user.stats.following}</p>
-                  <p className="text-xs text-muted-foreground">Following</p>
-                </div>
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
+      <Separator className="my-8" />
 
-        <div className="w-full md:w-2/3">
-          <Tabs defaultValue="creations">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="creations">Creations</TabsTrigger>
-              <TabsTrigger value="collected">Collected</TabsTrigger>
-              <TabsTrigger value="activity">Activity</TabsTrigger>
-              <TabsTrigger value="reselling">Reselling</TabsTrigger>
-            </TabsList>
-            <TabsContent value="creations" className="mt-6">
-              {user.stats.creations > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {/* Content would be loaded here */}
-                  <Card>
-                    <CardContent className="p-0">
-                      <div className="aspect-square relative">
-                        <Image
-                          src="/placeholder.svg?height=400&width=400"
-                          alt="Creation"
-                          fill
-                          className="object-cover rounded-t-lg"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-medium">Sample Creation</h3>
-                        <p className="text-sm text-muted-foreground">2.5 SOL</p>
-                      </div>
-                    </CardContent>
-                  </Card>
+      {/* Content Tabs */}
+      <Tabs defaultValue="creations">
+        <TabsList className="mb-8">
+          <TabsTrigger value="creations">My Creations</TabsTrigger>
+          <TabsTrigger value="purchases">My Purchases</TabsTrigger>
+          <TabsTrigger value="sales">My Sales</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="creations">
+          {contents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {contents.map((content: any) => (
+                <div
+                  key={content.id}
+                  className="rounded-lg overflow-hidden border cursor-pointer"
+                  onClick={() => router.push(`/content/${content.id}`)}
+                >
+                  <div className="relative aspect-video">
+                    <Image
+                      src={`https://arweave.net/${content.thumbnail_transaction_id}`}
+                      alt={content.title}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div className="p-4">
+                    <h3 className="font-bold">{content.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{content.description}</p>
+                    <div className="flex items-center justify-between mt-4">
+                      <span className="text-sm text-muted-foreground capitalize">{content.category}</span>
+                      <span className="font-bold">{content.price} SOL</span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">You haven't created any content yet.</p>
-                  <Button className="mt-4">Create Your First Item</Button>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="collected" className="mt-6">
-              {user.stats.sales > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Card>
-                    <CardContent className="p-0">
-                      <div className="aspect-square relative">
-                        <Image
-                          src="/placeholder.svg?height=400&width=400"
-                          alt="Collected Item"
-                          fill
-                          className="object-cover rounded-t-lg"
-                        />
-                      </div>
-                      <div className="p-4">
-                        <h3 className="font-medium">Collected Item</h3>
-                        <p className="text-sm text-muted-foreground">Purchased for 1.8 SOL</p>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-muted-foreground">You haven't collected any items yet.</p>
-                  <Button className="mt-4">Explore Marketplace</Button>
-                </div>
-              )}
-            </TabsContent>
-            <TabsContent value="activity" className="mt-6">
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">You haven't created any content yet</p>
+              <Button onClick={() => router.push("/dashboard/create")}>Create Content</Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="purchases">
+          {transactions.filter((tx: any) => tx.buyer_id === user.id).length > 0 ? (
+            <div className="space-y-4">
+              {transactions
+                .filter((tx: any) => tx.buyer_id === user.id)
+                .map((transaction: any) => (
+                  <div
+                    key={transaction.id}
+                    className="flex items-center gap-4 p-4 border rounded-lg cursor-pointer"
+                    onClick={() => router.push(`/content/${transaction.content_id}`)}
+                  >
+                    <div className="relative h-16 w-16 rounded overflow-hidden">
+                      <Image
+                        src={`https://arweave.net/${transaction.content.thumbnail_transaction_id}`}
+                        alt={transaction.content.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{transaction.content.title}</h3>
+                      <p className="text-sm text-muted-foreground">Purchased from {transaction.seller.display_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">{transaction.price} SOL</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(transaction.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">You haven't purchased any content yet</p>
+              <Button onClick={() => router.push("/marketplace")}>Browse Marketplace</Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="sales">
+          {transactions.filter((tx: any) => tx.seller_id === user.id).length > 0 ? (
+            <div className="space-y-4">
+              {transactions
+                .filter((tx: any) => tx.seller_id === user.id)
+                .map((transaction: any) => (
+                  <div key={transaction.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="relative h-16 w-16 rounded overflow-hidden">
+                      <Image
+                        src={`https://arweave.net/${transaction.content.thumbnail_transaction_id}`}
+                        alt={transaction.content.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-medium">{transaction.content.title}</h3>
+                      <p className="text-sm text-muted-foreground">Sold to {transaction.buyer.display_name}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold">{transaction.price} SOL</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(transaction.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">You haven't sold any content yet</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
+
+      {/* Followers Modal */}
+      {showFollowers && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Followers</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowFollowers(false)}>
+                ✕
+              </Button>
+            </div>
+
+            {followers.length > 0 ? (
               <div className="space-y-4">
-                <p className="text-muted-foreground text-center py-12">No recent activity to display.</p>
+                {followers.map((follower: any) => (
+                  <div
+                    key={follower.id}
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={() => {
+                      setShowFollowers(false)
+                      router.push(`/creator/${follower.id}`)
+                    }}
+                  >
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                      <Image
+                        src={follower.avatar_url || "/placeholder.svg?height=40&width=40"}
+                        alt={follower.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">{follower.display_name}</p>
+                      <p className="text-sm text-muted-foreground">@{follower.username}</p>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </TabsContent>
-            <TabsContent value="reselling" className="mt-6">
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">You aren't reselling any items yet.</p>
-                <Button className="mt-4">Start Reselling</Button>
-              </div>
-            </TabsContent>
-          </Tabs>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground">No followers yet</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Following Modal */}
+      {showFollowing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Following</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowFollowing(false)}>
+                ✕
+              </Button>
+            </div>
+
+            {following.length > 0 ? (
+              <div className="space-y-4">
+                {following.map((followed: any) => (
+                  <div
+                    key={followed.id}
+                    className="flex items-center gap-4 cursor-pointer"
+                    onClick={() => {
+                      setShowFollowing(false)
+                      router.push(`/creator/${followed.id}`)
+                    }}
+                  >
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                      <Image
+                        src={followed.avatar_url || "/placeholder.svg?height=40&width=40"}
+                        alt={followed.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">{followed.display_name}</p>
+                      <p className="text-sm text-muted-foreground">@{followed.username}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground">Not following anyone yet</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,196 +1,340 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import { useUser } from "@/context/user-context"
 import { useWallet } from "@/context/wallet-context"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Slider } from "@/components/ui/slider"
-import { ArweaveService } from "@/services/arweave-service"
-import { contentStore } from "@/store/content-store"
+import { useRouter } from "next/navigation"
 import { AIContentHelper } from "@/components/ai/ai-content-helper"
-import { AIAssistantButton } from "@/components/ai/ai-assistant-button"
+import { useContentStore } from "@/store/content-store"
 
 export default function CreateContentPage() {
+  const { user, isLoading: userLoading } = useUser()
+  const { publicKey, connected, signTransaction } = useWallet()
   const router = useRouter()
-  const { user } = useUser()
-  const { wallet } = useWallet()
+  const [mounted, setMounted] = useState(false)
+  const { createContent, isLoading: contentLoading } = useContentStore()
 
-  const [title, setTitle] = useState("")
-  const [description, setDescription] = useState("")
-  const [price, setPrice] = useState(5)
-  const [royaltyPercentage, setRoyaltyPercentage] = useState(10)
-  const [file, setFile] = useState<File | null>(null)
-  const [isUploading, setIsUploading] = useState(false)
+  // Add mounted state to prevent hydration issues
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Redirect if not logged in
+  useEffect(() => {
+    if (mounted && !userLoading && !user) {
+      router.push("/")
+    }
+  }, [user, userLoading, router, mounted])
+
+  const [formData, setFormData] = useState({
+    title: "",
+    description: "",
+    contentType: "music",
+    price: 0.1,
+    resaleRoyalty: 10,
+    file: null,
+    thumbnail: null,
+  })
+
+  const [previewUrl, setPreviewUrl] = useState("")
+  const [thumbnailUrl, setThumbnailUrl] = useState("")
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState("")
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0])
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        file,
+      }))
+      setPreviewUrl(URL.createObjectURL(file))
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      setFormData((prev) => ({
+        ...prev,
+        thumbnail: file,
+      }))
+      setThumbnailUrl(URL.createObjectURL(file))
+    }
+  }
 
-    if (!wallet || !user) {
+  const handlePriceChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      price: value[0],
+    }))
+  }
+
+  const handleRoyaltyChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      resaleRoyalty: value[0],
+    }))
+  }
+
+  const handleSubmit = async () => {
+    if (!connected || !publicKey) {
       setError("Please connect your wallet first")
       return
     }
 
-    if (!title || !description || !file) {
-      setError("Please fill in all fields and upload a file")
+    if (!formData.file) {
+      setError("Please upload a file")
       return
     }
 
-    setIsUploading(true)
-    setError("")
+    if (!formData.title) {
+      setError("Please enter a title")
+      return
+    }
 
     try {
-      // Upload to Arweave
-      const arweaveService = new ArweaveService()
-      const contentId = await arweaveService.uploadContent(file, {
-        title,
-        description,
-        creator: user.publicKey,
-        creatorName: user.username || "Anonymous",
-        creatorRole: user.role || "creator",
-        price,
-        royaltyPercentage,
-        timestamp: Date.now(),
+      setIsSubmitting(true)
+      setError("")
+
+      // For now, we'll just simulate the upload and transaction
+      // In a real app, you would upload to Arweave and create a transaction
+
+      // Mock transaction IDs for testing
+      const mockContentTxId = "mock-content-tx-id-" + Date.now()
+      const mockThumbnailTxId = formData.thumbnail ? "mock-thumbnail-tx-id-" + Date.now() : null
+
+      // Create content in the store
+      await createContent({
+        title: formData.title,
+        description: formData.description,
+        contentType: formData.contentType,
+        price: formData.price,
+        resaleRoyalty: formData.resaleRoyalty,
+        creatorId: user.id,
+        transactionId: mockContentTxId,
+        thumbnailTransactionId: mockThumbnailTxId,
       })
 
-      // Add to content store
-      contentStore.addContent({
-        id: contentId,
-        title,
-        description,
-        creator: user.publicKey,
-        creatorName: user.username || "Anonymous",
-        creatorRole: user.role || "creator",
-        price,
-        royaltyPercentage,
-        timestamp: Date.now(),
-        likes: 0,
-        purchases: 0,
-      })
-
-      // Redirect to content page
-      router.push(`/content/${contentId}`)
+      // Redirect to dashboard
+      router.push("/dashboard")
     } catch (err) {
-      console.error("Error uploading content:", err)
-      setError("Failed to upload content. Please try again.")
+      console.error(err)
+      setError("Failed to create content. Please try again.")
     } finally {
-      setIsUploading(false)
+      setIsSubmitting(false)
     }
   }
 
-  const handleDescriptionGenerated = (generatedDescription: string) => {
-    setDescription(generatedDescription)
-  }
-
-  const handlePricingSuggested = (pricing: { price: number; royaltyPercentage: number }) => {
-    setPrice(pricing.price)
-    setRoyaltyPercentage(pricing.royaltyPercentage)
+  if (!mounted || userLoading || !user) {
+    return null
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">Create New Content</h1>
+    <div className="container mx-auto py-10">
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Create Content</h1>
+          <p className="text-muted-foreground">Upload and sell your digital content on the blockchain.</p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Content Details</CardTitle>
-              <CardDescription>Fill in the details about your content and set your pricing</CardDescription>
-            </CardHeader>
-            <form onSubmit={handleSubmit}>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Content Details</CardTitle>
+                <CardDescription>Provide information about your content.</CardDescription>
+              </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Title</Label>
                   <Input
                     id="title"
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
                     placeholder="Enter a title for your content"
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    required
                   />
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
                     placeholder="Describe your content"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    required
-                    className="min-h-[120px]"
+                    rows={4}
                   />
                 </div>
-
                 <div className="space-y-2">
-                  <Label htmlFor="file">Upload File</Label>
-                  <Input id="file" type="file" onChange={handleFileChange} required />
+                  <Label htmlFor="contentType">Content Type</Label>
+                  <select
+                    id="contentType"
+                    name="contentType"
+                    className="w-full p-2 border rounded-md"
+                    value={formData.contentType}
+                    onChange={handleInputChange}
+                  >
+                    <option value="music">Music</option>
+                    <option value="video">Video</option>
+                    <option value="image">Image</option>
+                    <option value="document">Document</option>
+                    <option value="podcast">Podcast</option>
+                    <option value="other">Other</option>
+                  </select>
                 </div>
+              </CardContent>
+            </Card>
 
+            <Card>
+              <CardHeader>
+                <CardTitle>Upload</CardTitle>
+                <CardDescription>Upload your content and thumbnail.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="file">Content File</Label>
+                  <Input
+                    id="file"
+                    type="file"
+                    onChange={handleFileChange}
+                    accept={
+                      formData.contentType === "music"
+                        ? "audio/*"
+                        : formData.contentType === "video"
+                          ? "video/*"
+                          : formData.contentType === "image"
+                            ? "image/*"
+                            : formData.contentType === "document"
+                              ? ".pdf,.doc,.docx"
+                              : formData.contentType === "podcast"
+                                ? "audio/*"
+                                : "*"
+                    }
+                  />
+                  {previewUrl && (
+                    <div className="mt-2">
+                      {formData.contentType === "image" ? (
+                        <img src={previewUrl || "/placeholder.svg"} alt="Preview" className="max-h-40 rounded-md" />
+                      ) : formData.contentType === "video" ? (
+                        <video src={previewUrl} controls className="max-h-40 rounded-md" />
+                      ) : formData.contentType === "music" || formData.contentType === "podcast" ? (
+                        <audio src={previewUrl} controls className="w-full" />
+                      ) : (
+                        <p>File selected: {formData.file?.name}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="thumbnail">Thumbnail Image</Label>
+                  <Input id="thumbnail" type="file" onChange={handleThumbnailChange} accept="image/*" />
+                  {thumbnailUrl && (
+                    <img
+                      src={thumbnailUrl || "/placeholder.svg"}
+                      alt="Thumbnail"
+                      className="mt-2 max-h-40 rounded-md"
+                    />
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Pricing</CardTitle>
+                <CardDescription>Set the price and royalty for your content.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
                 <div className="space-y-2">
                   <div className="flex justify-between">
                     <Label htmlFor="price">Price (SOL)</Label>
-                    <span className="text-sm font-medium">{price} SOL</span>
+                    <span>{formData.price} SOL</span>
                   </div>
                   <Slider
                     id="price"
-                    min={0.1}
-                    max={100}
-                    step={0.1}
-                    value={[price]}
-                    onValueChange={(value) => setPrice(value[0])}
+                    min={0.01}
+                    max={10}
+                    step={0.01}
+                    value={[formData.price]}
+                    onValueChange={handlePriceChange}
                   />
                 </div>
-
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <Label htmlFor="royalty">Royalty Percentage</Label>
-                    <span className="text-sm font-medium">{royaltyPercentage}%</span>
+                    <Label htmlFor="resaleRoyalty">Resale Royalty (%)</Label>
+                    <span>{formData.resaleRoyalty}%</span>
                   </div>
                   <Slider
-                    id="royalty"
+                    id="resaleRoyalty"
                     min={0}
                     max={50}
                     step={1}
-                    value={[royaltyPercentage]}
-                    onValueChange={(value) => setRoyaltyPercentage(value[0])}
+                    value={[formData.resaleRoyalty]}
+                    onValueChange={handleRoyaltyChange}
                   />
                 </div>
-
-                {error && <div className="text-red-500 text-sm">{error}</div>}
               </CardContent>
               <CardFooter>
-                <Button type="submit" disabled={isUploading} className="w-full">
-                  {isUploading ? "Uploading..." : "Create Content"}
+                <Button onClick={handleSubmit} disabled={isSubmitting || !connected} className="w-full">
+                  {isSubmitting ? "Creating..." : connected ? "Create Content" : "Connect Wallet to Create"}
                 </Button>
               </CardFooter>
-            </form>
-          </Card>
-        </div>
+              {error && <p className="text-red-500 text-center pb-4">{error}</p>}
+            </Card>
+          </div>
 
-        <div>
-          <AIContentHelper
-            onDescriptionGenerated={handleDescriptionGenerated}
-            onPricingSuggested={handlePricingSuggested}
-          />
+          <div className="space-y-6">
+            <AIContentHelper />
+            <Card>
+              <CardHeader>
+                <CardTitle>Tips for Success</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <h3 className="font-medium">Quality Content</h3>
+                  <p className="text-sm text-muted-foreground">
+                    High-quality content sells better. Ensure your uploads are the best quality possible.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Detailed Description</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Be detailed in your description. Tell the story behind your content.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Fair Pricing</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Price your content fairly. Consider your audience and the value you're providing.
+                  </p>
+                </div>
+                <div>
+                  <h3 className="font-medium">Attractive Thumbnail</h3>
+                  <p className="text-sm text-muted-foreground">
+                    A good thumbnail can significantly increase sales. Make it eye-catching.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
-
-      <AIAssistantButton />
     </div>
   )
 }

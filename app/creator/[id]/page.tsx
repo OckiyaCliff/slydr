@@ -3,418 +3,345 @@
 import { useState, useEffect } from "react"
 import { useParams } from "next/navigation"
 import Image from "next/image"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { useContentStore } from "@/store/content-store"
-import { CheckCircle, Twitter, Instagram, Globe, Users, BarChart3, Heart, MessageSquare, Share2 } from "lucide-react"
+import { type UserProfile, useUser } from "@/context/user-context"
+import { Loader2, CheckCircle, Twitter, Instagram, Globe } from "lucide-react"
 
-// Mock creator data
-const creatorData = {
-  "creator-1": {
-    id: "creator-1",
-    name: "Astral Artisan",
-    username: "astralartist",
-    bio: "Digital artist exploring cosmic themes and ethereal landscapes. Creating immersive visual experiences that blur the line between reality and imagination.",
-    avatar: "/placeholder.svg?height=200&width=200",
-    coverImage: "/placeholder.svg?height=800&width=1600",
-    isVerified: true,
-    joinedDate: "2022-05-12T10:30:00Z",
-    socialLinks: {
-      twitter: "@astralartist",
-      instagram: "@astral.artisan",
-      website: "astralartisan.io",
-    },
-    stats: {
-      followers: 5842,
-      following: 321,
-      creations: 47,
-      sales: 215,
-    },
-    featured: [
-      {
-        id: "content-1",
-        title: "Cosmic Dreamscape Collection",
-        price: 2.5,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 342,
-      },
-    ],
-    creations: [
-      {
-        id: "content-1",
-        title: "Cosmic Dreamscape Collection",
-        price: 2.5,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 342,
-      },
-      {
-        id: "creation-2",
-        title: "Nebula Whispers",
-        price: 1.8,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 256,
-      },
-      {
-        id: "creation-3",
-        title: "Stellar Odyssey",
-        price: 3.2,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 189,
-      },
-      {
-        id: "creation-4",
-        title: "Galactic Horizons",
-        price: 2.1,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 217,
-      },
-    ],
-    collections: [
-      {
-        id: "collection-1",
-        title: "Cosmic Visions",
-        itemCount: 12,
-        thumbnail: "/placeholder.svg?height=800&width=800",
-      },
-      {
-        id: "collection-2",
-        title: "Ethereal Dimensions",
-        itemCount: 8,
-        thumbnail: "/placeholder.svg?height=800&width=800",
-      },
-    ],
-  },
-  "creator-2": {
-    id: "creator-2",
-    name: "Cyber Visionary",
-    username: "cybervisionary",
-    bio: "Digital artist specializing in cyberpunk aesthetics and futuristic cityscapes. Exploring the intersection of technology and humanity through vibrant neon-infused artwork.",
-    avatar: "/placeholder.svg?height=200&width=200",
-    coverImage: "/placeholder.svg?height=800&width=1600",
-    isVerified: true,
-    joinedDate: "2022-08-24T14:15:00Z",
-    socialLinks: {
-      twitter: "@cybervisionary",
-      instagram: "@cyber.visionary",
-      website: "cybervisionary.art",
-    },
-    stats: {
-      followers: 4218,
-      following: 187,
-      creations: 32,
-      sales: 178,
-    },
-    featured: [
-      {
-        id: "content-2",
-        title: "Neon Metropolis",
-        price: 1.8,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 278,
-      },
-    ],
-    creations: [
-      {
-        id: "content-2",
-        title: "Neon Metropolis",
-        price: 1.8,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 278,
-      },
-      {
-        id: "creation-5",
-        title: "Digital Dystopia",
-        price: 2.2,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 203,
-      },
-      {
-        id: "creation-6",
-        title: "Synthetic Dreams",
-        price: 1.5,
-        media: "/placeholder.svg?height=800&width=800",
-        likes: 167,
-      },
-    ],
-    collections: [
-      {
-        id: "collection-3",
-        title: "Cyberpunk Visions",
-        itemCount: 9,
-        thumbnail: "/placeholder.svg?height=800&width=800",
-      },
-    ],
-  },
-}
-
-// Update the component to use our content store
 export default function CreatorProfilePage() {
-  const { id } = useParams()
-  const { fetchContentsByCreator, isLoading, error } = useContentStore()
-  const [isFollowing, setIsFollowing] = useState(false)
-  const [creator, setCreator] = useState<any>(null)
-  const [creatorContents, setCreatorContents] = useState<any[]>([])
+  const params = useParams()
+  const { user, isFollowing, followUser, unfollowUser } = useUser()
+  const [creator, setCreator] = useState<UserProfile | null>(null)
+  const [contents, setContents] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [isFollowingCreator, setIsFollowingCreator] = useState(false)
+  const [isProcessingFollow, setIsProcessingFollow] = useState(false)
+  const [followers, setFollowers] = useState([])
+  const [following, setFollowing] = useState([])
+  const [showFollowers, setShowFollowers] = useState(false)
+  const [showFollowing, setShowFollowing] = useState(false)
 
   useEffect(() => {
-    // In a real app, we would fetch the creator profile from an API
-    // For now, use the mock data
-    const mockCreator = creatorData[id as string] || creatorData["creator-1"]
-    setCreator(mockCreator)
+    const fetchCreator = async () => {
+      try {
+        const response = await fetch(`/api/users/${params.id}`)
+        if (!response.ok) throw new Error("Failed to fetch creator")
+        const data = await response.json()
+        setCreator(data)
 
-    const loadCreatorContents = async () => {
-      const contents = await fetchContentsByCreator(id as string)
-      setCreatorContents(contents)
+        // Check if the current user is following this creator
+        if (user) {
+          const following = await isFollowing(data.id)
+          setIsFollowingCreator(following)
+        }
+
+        // Fetch creator's content
+        const contentsResponse = await fetch(`/api/contents/creator/${data.id}`)
+        if (contentsResponse.ok) {
+          const contentsData = await contentsResponse.json()
+          setContents(contentsData)
+        }
+
+        // Fetch followers
+        const followersResponse = await fetch(`/api/users/${data.id}/followers`)
+        if (followersResponse.ok) {
+          const followersData = await followersResponse.json()
+          setFollowers(followersData)
+        }
+
+        // Fetch following
+        const followingResponse = await fetch(`/api/users/${data.id}/following`)
+        if (followingResponse.ok) {
+          const followingData = await followingResponse.json()
+          setFollowing(followingData)
+        }
+      } catch (error) {
+        console.error("Error fetching creator:", error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    loadCreatorContents()
-  }, [id, fetchContentsByCreator])
+    if (params.id) {
+      fetchCreator()
+    }
+  }, [params.id, user])
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+  const handleFollowToggle = async () => {
+    if (!user) return
+
+    setIsProcessingFollow(true)
+    try {
+      if (isFollowingCreator) {
+        await unfollowUser(creator!.id)
+        setIsFollowingCreator(false)
+        setFollowers(followers.filter((follower: any) => follower.id !== user.id))
+      } else {
+        await followUser(creator!.id)
+        setIsFollowingCreator(true)
+        setFollowers([...followers, user])
+      }
+    } catch (error) {
+      console.error("Error toggling follow:", error)
+    } finally {
+      setIsProcessingFollow(false)
+    }
   }
 
   if (isLoading) {
-    return <div className="container py-12">Loading creator profile...</div>
-  }
-
-  if (error) {
-    return <div className="container py-12 text-destructive">{error}</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   if (!creator) {
-    return <div className="container py-12">Creator not found</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Creator not found</h1>
+          <p className="text-muted-foreground">The creator you're looking for doesn't exist or has been removed.</p>
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="container pb-12">
+    <div className="container py-8">
       {/* Cover Image */}
-      <div className="relative w-full h-64 md:h-80 rounded-b-lg overflow-hidden">
+      <div className="relative h-64 w-full rounded-lg overflow-hidden mb-16">
         <Image
-          src={creator.coverImage || "/placeholder.svg"}
-          alt={`${creator.name} cover`}
+          src={creator.cover_image_url || "/placeholder.svg?height=400&width=1200"}
+          alt={`${creator.display_name}'s cover`}
           fill
           className="object-cover"
         />
       </div>
 
-      {/* Profile Info */}
-      <div className="relative px-4 sm:px-6 lg:px-8 -mt-20">
-        <div className="bg-background rounded-lg shadow-lg p-6">
-          <div className="flex flex-col md:flex-row gap-6 items-start md:items-center">
-            <Avatar className="h-24 w-24 border-4 border-background">
-              <AvatarImage src={creator.avatar} alt={creator.name} />
-              <AvatarFallback>{creator.name.charAt(0)}</AvatarFallback>
-            </Avatar>
+      {/* Profile Header */}
+      <div className="flex flex-col md:flex-row gap-8 mb-8">
+        <div className="relative -mt-24 md:-mt-32">
+          <div className="relative h-32 w-32 md:h-48 md:w-48 rounded-full overflow-hidden border-4 border-background">
+            <Image
+              src={creator.avatar_url || "/placeholder.svg?height=200&width=200"}
+              alt={creator.display_name}
+              fill
+              className="object-cover"
+            />
+          </div>
+          {creator.is_verified && (
+            <div className="absolute bottom-0 right-0 bg-primary text-primary-foreground rounded-full p-1">
+              <CheckCircle className="h-6 w-6" />
+            </div>
+          )}
+        </div>
 
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold">{creator.name}</h1>
-                {creator.isVerified && <CheckCircle className="h-5 w-5 text-primary" />}
-              </div>
+        <div className="flex-1">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold">{creator.display_name}</h1>
               <p className="text-muted-foreground">@{creator.username}</p>
             </div>
 
-            <div className="flex gap-3 self-end md:self-center">
-              <Button variant="outline" size="icon">
-                <Share2 className="h-5 w-5" />
-                <span className="sr-only">Share</span>
+            {user && user.id !== creator.id && (
+              <Button
+                onClick={handleFollowToggle}
+                variant={isFollowingCreator ? "outline" : "default"}
+                disabled={isProcessingFollow}
+              >
+                {isProcessingFollow ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isFollowingCreator ? "Following" : "Follow"}
               </Button>
-              <Button variant="outline" size="icon">
-                <MessageSquare className="h-5 w-5" />
-                <span className="sr-only">Message</span>
-              </Button>
-              <Button variant={isFollowing ? "outline" : "default"} onClick={() => setIsFollowing(!isFollowing)}>
-                {isFollowing ? "Following" : "Follow"}
-              </Button>
-            </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 text-center">
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold">{creator.stats.followers + (isFollowing ? 1 : 0)}</p>
-              <p className="text-sm text-muted-foreground">Followers</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold">{creator.stats.following}</p>
-              <p className="text-sm text-muted-foreground">Following</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold">{creator.stats.creations}</p>
-              <p className="text-sm text-muted-foreground">Creations</p>
-            </div>
-            <div className="p-3 rounded-lg bg-muted/50">
-              <p className="text-2xl font-bold">{creator.stats.sales}</p>
-              <p className="text-sm text-muted-foreground">Sales</p>
-            </div>
+          <div className="mt-4">
+            <p>{creator.bio}</p>
           </div>
 
-          <div className="mt-6">
-            <h2 className="font-semibold mb-2">About</h2>
-            <p className="text-muted-foreground">{creator.bio}</p>
+          <div className="flex items-center gap-6 mt-4">
+            <button onClick={() => setShowFollowers(true)} className="flex items-center gap-2 hover:underline">
+              <span className="font-bold">{followers.length}</span> Followers
+            </button>
+            <button onClick={() => setShowFollowing(true)} className="flex items-center gap-2 hover:underline">
+              <span className="font-bold">{following.length}</span> Following
+            </button>
+            <span className="flex items-center gap-2">
+              <span className="font-bold">{contents.length}</span> Creations
+            </span>
+          </div>
 
-            <div className="flex flex-wrap gap-4 mt-4">
-              <div className="flex items-center gap-2 text-sm">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>Joined {formatDate(creator.joinedDate)}</span>
-              </div>
-
-              {creator.socialLinks.twitter && (
-                <a href="#" className="flex items-center gap-2 text-sm hover:text-primary">
-                  <Twitter className="h-4 w-4" />
-                  <span>{creator.socialLinks.twitter}</span>
-                </a>
-              )}
-
-              {creator.socialLinks.instagram && (
-                <a href="#" className="flex items-center gap-2 text-sm hover:text-primary">
-                  <Instagram className="h-4 w-4" />
-                  <span>{creator.socialLinks.instagram}</span>
-                </a>
-              )}
-
-              {creator.socialLinks.website && (
-                <a href="#" className="flex items-center gap-2 text-sm hover:text-primary">
-                  <Globe className="h-4 w-4" />
-                  <span>{creator.socialLinks.website}</span>
-                </a>
-              )}
-            </div>
+          <div className="flex items-center gap-4 mt-4">
+            {creator.social_links?.twitter && (
+              <a
+                href={`https://twitter.com/${creator.social_links.twitter}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Twitter className="h-5 w-5" />
+              </a>
+            )}
+            {creator.social_links?.instagram && (
+              <a
+                href={`https://instagram.com/${creator.social_links.instagram}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Instagram className="h-5 w-5" />
+              </a>
+            )}
+            {creator.social_links?.website && (
+              <a
+                href={creator.social_links.website}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-primary"
+              >
+                <Globe className="h-5 w-5" />
+              </a>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Featured Work */}
-      {creator.featured && creator.featured.length > 0 && (
-        <div className="mt-12 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold mb-6">Featured Work</h2>
-          <div className="grid grid-cols-1 gap-6">
-            {creator.featured.map((item) => (
-              <div key={item.id} className="relative rounded-lg overflow-hidden">
-                <div className="aspect-[21/9] relative">
-                  <Image src={item.media || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent flex flex-col justify-end p-6 text-white">
-                  <h3 className="text-xl font-bold">{item.title}</h3>
-                  <div className="flex justify-between items-center mt-2">
-                    <p className="text-lg font-semibold">{item.price} SOL</p>
-                    <div className="flex items-center gap-1">
-                      <Heart className="h-4 w-4" />
-                      <span>{item.likes}</span>
-                    </div>
-                  </div>
-                  <Button className="mt-4" asChild>
-                    <Link href={`/content/${item.id}`}>View Details</Link>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      <Separator className="my-8" />
 
-      {/* Tabs Section */}
-      <div className="mt-12 px-4 sm:px-6 lg:px-8">
-        <Tabs defaultValue="creations">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="creations">Creations</TabsTrigger>
-            <TabsTrigger value="collections">Collections</TabsTrigger>
-            <TabsTrigger value="activity">Activity</TabsTrigger>
-          </TabsList>
+      {/* Content Tabs */}
+      <Tabs defaultValue="creations">
+        <TabsList className="mb-8">
+          <TabsTrigger value="creations">Creations</TabsTrigger>
+          <TabsTrigger value="about">About</TabsTrigger>
+        </TabsList>
 
-          <TabsContent value="creations" className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {creator.creations.map((item) => (
-                <Link href={`/content/${item.id}`} key={item.id}>
-                  <Card className="overflow-hidden transition-all hover:shadow-md">
-                    <div className="aspect-square relative">
-                      <Image src={item.media || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
-                    </div>
-                    <CardContent className="p-4">
-                      <h3 className="font-medium truncate">{item.title}</h3>
-                      <div className="flex justify-between items-center mt-2">
-                        <p className="text-sm font-semibold">{item.price} SOL</p>
-                        <div className="flex items-center gap-1">
-                          <Heart className="h-3 w-3" />
-                          <span className="text-xs">{item.likes}</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="collections" className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-              {creator.collections.map((collection) => (
-                <Card key={collection.id} className="overflow-hidden transition-all hover:shadow-md">
-                  <div className="aspect-video relative">
+        <TabsContent value="creations">
+          {contents.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {contents.map((content: any) => (
+                <div key={content.id} className="rounded-lg overflow-hidden border">
+                  <div className="relative aspect-video">
                     <Image
-                      src={collection.thumbnail || "/placeholder.svg"}
-                      alt={collection.title}
+                      src={`https://arweave.net/${content.thumbnail_transaction_id}`}
+                      alt={content.title}
                       fill
                       className="object-cover"
                     />
                   </div>
-                  <CardContent className="p-4">
-                    <h3 className="font-medium">{collection.title}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{collection.itemCount} items</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="activity" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <BarChart3 className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Listed "Cosmic Dreamscape Collection"</p>
-                      <p className="text-sm text-muted-foreground">{formatDate(new Date().toISOString())} • 2.5 SOL</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Heart className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Received 50 likes on "Nebula Whispers"</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(new Date(Date.now() - 86400000).toISOString())}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <Users className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Reached 5,000 followers</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(new Date(Date.now() - 172800000).toISOString())}
-                      </p>
+                  <div className="p-4">
+                    <h3 className="font-bold">{content.title}</h3>
+                    <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{content.description}</p>
+                    <div className="flex items-center justify-between mt-4">
+                      <Badge>{content.category}</Badge>
+                      <span className="font-bold">{content.price} SOL</span>
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">No content yet</p>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="about">
+          <div className="max-w-2xl">
+            <h2 className="text-2xl font-bold mb-4">About {creator.display_name}</h2>
+            <p className="mb-6">{creator.bio || "No bio provided."}</p>
+
+            <h3 className="text-xl font-bold mb-2">Role</h3>
+            <p className="mb-6 capitalize">{creator.role}</p>
+
+            <h3 className="text-xl font-bold mb-2">Joined</h3>
+            <p className="mb-6">
+              {new Date(creator.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </p>
+          </div>
+        </TabsContent>
+      </Tabs>
+
+      {/* Followers Modal */}
+      {showFollowers && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Followers</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowFollowers(false)}>
+                ✕
+              </Button>
+            </div>
+
+            {followers.length > 0 ? (
+              <div className="space-y-4">
+                {followers.map((follower: any) => (
+                  <div key={follower.id} className="flex items-center gap-4">
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                      <Image
+                        src={follower.avatar_url || "/placeholder.svg?height=40&width=40"}
+                        alt={follower.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">{follower.display_name}</p>
+                      <p className="text-sm text-muted-foreground">@{follower.username}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground">No followers yet</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Following Modal */}
+      {showFollowing && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background rounded-lg p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-bold">Following</h3>
+              <Button variant="ghost" size="sm" onClick={() => setShowFollowing(false)}>
+                ✕
+              </Button>
+            </div>
+
+            {following.length > 0 ? (
+              <div className="space-y-4">
+                {following.map((followed: any) => (
+                  <div key={followed.id} className="flex items-center gap-4">
+                    <div className="relative h-10 w-10 rounded-full overflow-hidden">
+                      <Image
+                        src={followed.avatar_url || "/placeholder.svg?height=40&width=40"}
+                        alt={followed.display_name}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <p className="font-medium">{followed.display_name}</p>
+                      <p className="text-sm text-muted-foreground">@{followed.username}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-4 text-muted-foreground">Not following anyone yet</p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

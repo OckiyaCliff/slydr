@@ -1,369 +1,421 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useParams } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import Image from "next/image"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { useWallet } from "@/context/wallet-context"
 import { useUser } from "@/context/user-context"
-import { useContentStore } from "@/store/content-store"
-import {
-  Heart,
-  Share2,
-  MoreHorizontal,
-  Clock,
-  Tag,
-  Users,
-  Repeat,
-  ShoppingCart,
-  CheckCircle,
-  ArrowRight,
-  MessageCircle,
-  Eye,
-} from "lucide-react"
+import { useWallet } from "@/context/wallet-context"
+import { AnchorService } from "@/services/anchor-service"
+import { Loader2, Heart, Share2, ShoppingCart, Download, User, Calendar, Tag, Shield, ArrowRight } from "lucide-react"
 
-// Update the component to use our content store
 export default function ContentDetailPage() {
-  const { id } = useParams()
-  const { connected, publicKey } = useWallet()
+  const params = useParams()
+  const router = useRouter()
   const { user } = useUser()
-  const { fetchContentById, purchaseContent, isLoading, error } = useContentStore()
+  const { wallet, connected } = useWallet()
+
   const [content, setContent] = useState<any>(null)
-  const [isLiked, setIsLiked] = useState(false)
+  const [creator, setCreator] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(true)
   const [isPurchasing, setIsPurchasing] = useState(false)
-  const [contentData, setContentData] = useState<any>({})
+  const [isLiked, setIsLiked] = useState(false)
+  const [likeCount, setLikeCount] = useState(0)
+  const [hasPurchased, setHasPurchased] = useState(false)
+  const [relatedContent, setRelatedContent] = useState([])
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    const loadContent = async () => {
-      const contentData = await fetchContentById(id as string)
-      if (contentData) {
+    const fetchContentDetails = async () => {
+      try {
+        // Fetch content details
+        const response = await fetch(`/api/contents/${params.id}`)
+        if (!response.ok) throw new Error("Failed to fetch content")
+
+        const contentData = await response.json()
         setContent(contentData)
-        setContentData({ [contentData.id]: contentData })
+
+        // Record view
+        await fetch("/api/analytics/views", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            content_id: contentData.id,
+            user_id: user?.id || null,
+          }),
+        })
+
+        // Fetch creator details
+        const creatorResponse = await fetch(`/api/users/${contentData.creator_id}`)
+        if (creatorResponse.ok) {
+          const creatorData = await creatorResponse.json()
+          setCreator(creatorData)
+        }
+
+        // Check if user has purchased this content
+        if (user) {
+          const purchaseResponse = await fetch(`/api/users/${user.id}/transactions?content_id=${contentData.id}`)
+          if (purchaseResponse.ok) {
+            const purchaseData = await purchaseResponse.json()
+            setHasPurchased(purchaseData.length > 0)
+          }
+
+          // Check if user has liked this content
+          // This would require a likes table in Supabase
+          // For now, we'll just simulate it
+          setIsLiked(Math.random() > 0.5)
+        }
+
+        // Set like count
+        setLikeCount(contentData.like_count || Math.floor(Math.random() * 100))
+
+        // Fetch related content
+        const relatedResponse = await fetch(`/api/contents?category=${contentData.category}&limit=3`)
+        if (relatedResponse.ok) {
+          const relatedData = await relatedResponse.json()
+          setRelatedContent(relatedData.filter((item: any) => item.id !== contentData.id))
+        }
+      } catch (error) {
+        console.error("Error fetching content:", error)
+        setError("Failed to load content. Please try again.")
+      } finally {
+        setIsLoading(false)
       }
     }
 
-    loadContent()
-  }, [id, fetchContentById])
+    if (params.id) {
+      fetchContentDetails()
+    }
+  }, [params.id, user])
 
   const handlePurchase = async () => {
-    if (!connected || !publicKey) {
-      alert("Please connect your wallet to purchase this content.")
+    if (!user || !wallet || !connected) {
+      alert("Please connect your wallet to purchase this content")
       return
     }
 
     setIsPurchasing(true)
+    setError(null)
+
     try {
-      const success = await purchaseContent(id as string, publicKey)
-      if (success) {
-        alert("Purchase successful! You now own this content.")
-      } else {
-        alert("Purchase failed. Please try again.")
+      // 1. Execute Solana transaction via Anchor program
+      const anchorService = new AnchorService()
+      const txSignature = await anchorService.purchaseContent(content.id, content.creator_id, content.price)
+
+      // 2. Record transaction in Supabase
+      const transactionResponse = await fetch("/api/transactions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content_id: content.id,
+          buyer_id: user.id,
+          seller_id: content.creator_id,
+          price: content.price,
+          transaction_signature: txSignature,
+        }),
+      })
+
+      if (!transactionResponse.ok) {
+        throw new Error("Failed to record transaction")
       }
-    } catch (error) {
-      console.error("Error purchasing content:", error)
-      alert("An error occurred during purchase. Please try again.")
+
+      // 3. Update UI state
+      setHasPurchased(true)
+    } catch (err) {
+      console.error("Error purchasing content:", err)
+      setError("Failed to complete purchase. Please try again.")
     } finally {
       setIsPurchasing(false)
     }
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    })
+  const handleLikeToggle = async () => {
+    if (!user) return
+
+    // Toggle like state optimistically
+    setIsLiked(!isLiked)
+    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1)
+
+    // In a real app, we would update the likes in the database
+    // await fetch('/api/contents/${content.id}/like', {
+    //   method: isLiked ? 'DELETE' : 'POST',
+    //   headers: {
+    //     'Content-Type': 'application/json',
+    //   },
+    //   body: JSON.stringify({
+    //     user_id: user.id
+    //   }),
+    // })
+  }
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: content.title,
+        text: content.description,
+        url: window.location.href,
+      })
+    } else {
+      navigator.clipboard.writeText(window.location.href)
+      alert("Link copied to clipboard!")
+    }
   }
 
   if (isLoading) {
-    return <div className="container py-12">Loading content...</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   if (error) {
-    return <div className="container py-12 text-destructive">{error}</div>
+    return (
+      <div className="container py-12">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Error</h1>
+          <p className="text-muted-foreground mb-6">{error}</p>
+          <Button onClick={() => router.back()}>Go Back</Button>
+        </div>
+      </div>
+    )
   }
 
   if (!content) {
-    return <div className="container py-12">Content not found</div>
+    return (
+      <div className="container py-12">
+        <div className="max-w-md mx-auto text-center">
+          <h1 className="text-2xl font-bold mb-4">Content Not Found</h1>
+          <p className="text-muted-foreground mb-6">
+            The content you're looking for doesn't exist or has been removed.
+          </p>
+          <Button onClick={() => router.push("/marketplace")}>Browse Marketplace</Button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="container py-8">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Content Image */}
         <div className="lg:col-span-2">
-          <div className="relative aspect-square rounded-lg overflow-hidden">
-            <Image src={content.media || "/placeholder.svg"} alt={content.title} fill className="object-cover" />
-          </div>
-
-          <div className="flex justify-between items-center mt-4">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setIsLiked(!isLiked)}
-                className={isLiked ? "text-red-500" : ""}
-              >
-                <Heart className={`h-5 w-5 ${isLiked ? "fill-red-500" : ""}`} />
-                <span className="sr-only">Like</span>
-              </Button>
-              <span className="text-sm text-muted-foreground">{content.likes + (isLiked ? 1 : 0)}</span>
-
-              <Button variant="outline" size="icon">
-                <Share2 className="h-5 w-5" />
-                <span className="sr-only">Share</span>
-              </Button>
-
-              <Button variant="outline" size="icon">
-                <MoreHorizontal className="h-5 w-5" />
-                <span className="sr-only">More</span>
-              </Button>
+          {/* Content Preview */}
+          <div className="rounded-lg overflow-hidden border mb-6">
+            <div className="relative aspect-video">
+              <Image
+                src={`https://arweave.net/${content.thumbnail_transaction_id}`}
+                alt={content.title}
+                fill
+                className="object-cover"
+              />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">{content.views} views</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Details */}
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-3xl font-bold">{content.title}</h1>
-            <div className="flex items-center gap-2 mt-2">
-              <Badge variant="outline">{content.category}</Badge>
-              {content.resaleRights && (
-                <Badge variant="secondary" className="bg-primary/10">
-                  <Repeat className="h-3 w-3 mr-1" />
-                  Resale Rights
-                </Badge>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <Link href={`/creator/${content.creator.id}`}>
-              <Avatar className="h-10 w-10">
-                <AvatarImage src={content.creator.avatar} alt={content.creator.name} />
-                <AvatarFallback>{content.creator.name.charAt(0)}</AvatarFallback>
-              </Avatar>
-            </Link>
-            <div>
-              <Link
-                href={`/creator/${content.creator.id}`}
-                className="font-medium flex items-center hover:text-primary"
-              >
-                {content.creator.name}
-                {content.creator.isVerified && <CheckCircle className="h-4 w-4 ml-1 text-primary" />}
-              </Link>
-              <p className="text-sm text-muted-foreground">@{content.creator.username}</p>
-            </div>
-          </div>
-
-          <Separator />
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-muted-foreground">Current Price</p>
-                <p className="text-3xl font-bold">{content.price} SOL</p>
+            {!hasPurchased && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+                <div className="text-center p-6 bg-background/80 backdrop-blur-sm rounded-lg">
+                  <ShoppingCart className="h-12 w-12 mx-auto mb-4 text-primary" />
+                  <h3 className="text-xl font-bold mb-2">Purchase to Access</h3>
+                  <p className="text-muted-foreground mb-4">Purchase this content to get full access</p>
+                  <Button onClick={handlePurchase} disabled={isPurchasing || !connected} className="w-full">
+                    {isPurchasing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>Buy for {content.price} SOL</>
+                    )}
+                  </Button>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Royalty</p>
-                <p className="text-xl font-semibold">{content.resaleRoyalty}%</p>
-              </div>
-            </div>
-
-            {connected ? (
-              <div className="grid grid-cols-2 gap-4">
-                <Button className="w-full" onClick={handlePurchase} disabled={isPurchasing}>
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  {isPurchasing ? "Purchasing..." : "Buy Now"}
-                </Button>
-                <Button variant="outline" className="w-full">
-                  <Repeat className="h-4 w-4 mr-2" />
-                  Resell
-                </Button>
-              </div>
-            ) : (
-              <Button className="w-full">Connect Wallet to Purchase</Button>
             )}
           </div>
 
-          <Separator />
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">Description</h3>
-            <p className="text-sm text-muted-foreground">{content.description}</p>
-          </div>
-
-          <div className="space-y-2">
-            <h3 className="font-semibold">Details</h3>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>Created {formatDate(content.createdAt)}</span>
+          {/* Content Info */}
+          <div className="space-y-6">
+            <div className="flex items-start justify-between">
+              <div>
+                <h1 className="text-3xl font-bold">{content.title}</h1>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge className="capitalize">{content.category}</Badge>
+                  <span className="text-muted-foreground">{new Date(content.created_at).toLocaleDateString()}</span>
+                </div>
               </div>
+
               <div className="flex items-center gap-2">
-                <Tag className="h-4 w-4 text-muted-foreground" />
-                <span>{content.category}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <span>{content.owners} owners</span>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={handleLikeToggle}
+                  className={isLiked ? "text-red-500" : ""}
+                >
+                  <Heart className="h-5 w-5" fill={isLiked ? "currentColor" : "none"} />
+                  <span className="sr-only">Like</span>
+                </Button>
+                <Button variant="outline" size="icon" onClick={handleShare}>
+                  <Share2 className="h-5 w-5" />
+                  <span className="sr-only">Share</span>
+                </Button>
               </div>
             </div>
-          </div>
 
-          <div className="space-y-2">
-            <h3 className="font-semibold">Tags</h3>
-            <div className="flex flex-wrap gap-2">
-              {content.tags.map((tag) => (
-                <Badge key={tag} variant="outline">
-                  #{tag}
-                </Badge>
-              ))}
+            <Separator />
+
+            <div>
+              <h2 className="text-xl font-bold mb-2">Description</h2>
+              <p className="text-muted-foreground whitespace-pre-line">{content.description}</p>
             </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 rounded-lg bg-muted/50">
+                <User className="h-5 w-5 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-medium">Creator</h3>
+                <p className="text-sm truncate">{creator?.display_name || "Unknown"}</p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50">
+                <Calendar className="h-5 w-5 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-medium">Published</h3>
+                <p className="text-sm">{new Date(content.created_at).toLocaleDateString()}</p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50">
+                <Tag className="h-5 w-5 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-medium">Price</h3>
+                <p className="text-sm font-bold">{content.price} SOL</p>
+              </div>
+
+              <div className="p-4 rounded-lg bg-muted/50">
+                <Shield className="h-5 w-5 text-muted-foreground mb-2" />
+                <h3 className="text-sm font-medium">Resale</h3>
+                <p className="text-sm">
+                  {content.resale_rights ? `${content.resale_royalty}% Royalty` : "Not Allowed"}
+                </p>
+              </div>
+            </div>
+
+            {content.tags && content.tags.length > 0 && (
+              <div>
+                <h2 className="text-xl font-bold mb-2">Tags</h2>
+                <div className="flex flex-wrap gap-2">
+                  {content.tags.map((tag: string, index: number) => (
+                    <Badge key={index} variant="outline">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
 
-      {/* Tabs Section */}
-      <div className="mt-12">
-        <Tabs defaultValue="comments">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="comments">Comments</TabsTrigger>
-            <TabsTrigger value="history">History</TabsTrigger>
-            <TabsTrigger value="related">Related</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="comments" className="mt-6">
-            <Card>
+        <div>
+          {/* Creator Card */}
+          {creator && (
+            <Card className="mb-6">
               <CardContent className="pt-6">
-                <div className="space-y-6">
-                  {content.comments.map((comment) => (
-                    <div key={comment.id} className="flex gap-4">
-                      <Avatar>
-                        <AvatarImage src={comment.user.avatar} alt={comment.user.name} />
-                        <AvatarFallback>{comment.user.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{comment.user.name}</span>
-                          <span className="text-sm text-muted-foreground">@{comment.user.username}</span>
-                          <span className="text-xs text-muted-foreground">{formatDate(comment.timestamp)}</span>
-                        </div>
-                        <p className="text-sm">{comment.text}</p>
-                        <div className="flex items-center gap-2">
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <Heart className="h-4 w-4 mr-1" />
-                            <span>{comment.likes}</span>
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            <MessageCircle className="h-4 w-4 mr-1" />
-                            <span>Reply</span>
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="relative h-12 w-12 rounded-full overflow-hidden">
+                    <Image
+                      src={creator.avatar_url || "/placeholder.svg?height=48&width=48"}
+                      alt={creator.display_name}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                  <div>
+                    <h3 className="font-bold">{creator.display_name}</h3>
+                    <p className="text-sm text-muted-foreground">@{creator.username}</p>
+                  </div>
+                </div>
 
-                  {connected ? (
-                    <div className="flex gap-4 mt-6">
-                      <Avatar>
-                        <AvatarImage src={user?.avatar} alt={user?.displayName} />
-                        <AvatarFallback>{user?.displayName?.charAt(0) || "U"}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <textarea
-                          className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary"
-                          placeholder="Add a comment..."
-                          rows={3}
-                        />
-                        <div className="flex justify-end mt-2">
-                          <Button>Post Comment</Button>
-                        </div>
-                      </div>
-                    </div>
+                <p className="text-sm text-muted-foreground mb-4 line-clamp-3">{creator.bio || "No bio provided."}</p>
+
+                <Button variant="outline" className="w-full" onClick={() => router.push(`/creator/${creator.id}`)}>
+                  View Profile
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Purchase Card */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <h3 className="text-xl font-bold mb-4">{hasPurchased ? "You Own This Content" : "Purchase Content"}</h3>
+
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-muted-foreground">Price</span>
+                <span className="text-2xl font-bold">{content.price} SOL</span>
+              </div>
+
+              {hasPurchased ? (
+                <Button className="w-full mb-4">
+                  <Download className="h-4 w-4 mr-2" />
+                  Download Content
+                </Button>
+              ) : (
+                <Button className="w-full mb-4" onClick={handlePurchase} disabled={isPurchasing || !connected}>
+                  {isPurchasing ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
                   ) : (
-                    <div className="text-center py-4">
-                      <p className="text-muted-foreground mb-2">Connect your wallet to join the conversation</p>
-                      <Button variant="outline">Connect Wallet</Button>
-                    </div>
+                    <>
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Buy for {content.price} SOL
+                    </>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </Button>
+              )}
 
-          <TabsContent value="history" className="mt-6">
-            <Card>
-              <CardContent className="pt-6">
-                <div className="space-y-4">
-                  {content.history.map((event, index) => (
-                    <div key={index} className="flex items-center gap-4">
-                      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        {event.event === "Created" && <Clock className="h-5 w-5" />}
-                        {event.event === "Listed" && <Tag className="h-5 w-5" />}
-                        {(event.event === "Purchased" || event.event === "Resold") && (
-                          <ShoppingCart className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-medium">{event.event}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {formatDate(event.timestamp)}
-                          {event.price && ` • ${event.price} SOL`}
-                        </p>
-                      </div>
-                      {(event.from || event.to) && (
-                        <div className="text-sm">
-                          {event.from && <span>From: {event.from}</span>}
-                          {event.from && event.to && <ArrowRight className="inline h-3 w-3 mx-1" />}
-                          {event.to && <span>To: {event.to}</span>}
-                        </div>
-                      )}
+              <div className="text-sm text-muted-foreground">
+                {content.resale_rights ? (
+                  <p>Includes resale rights with {content.resale_royalty}% royalty to creator</p>
+                ) : (
+                  <p>This content cannot be resold</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Related Content */}
+          {relatedContent.length > 0 && (
+            <div>
+              <h3 className="text-xl font-bold mb-4">Related Content</h3>
+              <div className="space-y-4">
+                {relatedContent.map((item: any) => (
+                  <div
+                    key={item.id}
+                    className="flex items-center gap-4 p-3 border rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => router.push(`/content/${item.id}`)}
+                  >
+                    <div className="relative h-16 w-16 rounded overflow-hidden">
+                      <Image
+                        src={`https://arweave.net/${item.thumbnail_transaction_id}`}
+                        alt={item.title}
+                        fill
+                        className="object-cover"
+                      />
                     </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="related" className="mt-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Object.values(contentData)
-                .filter((item: any) => item.id !== content.id)
-                .map((item: any) => (
-                  <Link href={`/content/${item.id}`} key={item.id}>
-                    <Card className="overflow-hidden transition-all hover:shadow-md">
-                      <div className="aspect-square relative">
-                        <Image src={item.media || "/placeholder.svg"} alt={item.title} fill className="object-cover" />
-                      </div>
-                      <CardContent className="p-4">
-                        <h3 className="font-medium truncate">{item.title}</h3>
-                        <div className="flex justify-between items-center mt-2">
-                          <p className="text-sm font-semibold">{item.price} SOL</p>
-                          <div className="flex items-center gap-1">
-                            <Heart className="h-3 w-3" />
-                            <span className="text-xs">{item.likes}</span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </Link>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-medium truncate">{item.title}</h4>
+                      <p className="text-sm text-muted-foreground">{item.price} SOL</p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </div>
                 ))}
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          )}
+        </div>
       </div>
     </div>
   )

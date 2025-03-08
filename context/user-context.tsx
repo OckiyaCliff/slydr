@@ -2,27 +2,37 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useWallet } from "@/context/wallet-context"
+import {
+  getUserByWallet,
+  updateUser,
+  followUser as dbFollowUser,
+  unfollowUser as dbUnfollowUser,
+  isFollowing as dbIsFollowing,
+  getFollowers as dbGetFollowers,
+  getFollowing as dbGetFollowing,
+} from "@/lib/db"
 
 // Define user types
 export type UserRole = "creator" | "fan" | "admin" | "artist" | "musician" | "writer" | "podcaster" | "filmmaker"
 
 export interface UserProfile {
   id: string
-  publicKey: string
+  wallet_address: string
   username: string
-  displayName: string
-  bio: string
-  avatar: string
-  coverImage: string
+  display_name: string
+  bio: string | null
+  avatar_url: string | null
+  cover_image_url: string | null
   role: UserRole
-  isVerified: boolean
-  joinedAt: string
-  socialLinks: {
+  is_verified: boolean
+  created_at: string
+  updated_at: string
+  social_links: {
     twitter?: string
     instagram?: string
     website?: string
-  }
-  stats: {
+  } | null
+  stats?: {
     followers: number
     following: number
     sales: number
@@ -36,8 +46,13 @@ interface UserContextType {
   isLoading: boolean
   error: Error | null
   login: () => Promise<void>
-  logout: () => () => void
+  logout: () => void
   updateProfile: (updates: Partial<UserProfile>) => Promise<void>
+  followUser: (userId: string) => Promise<void>
+  unfollowUser: (userId: string) => Promise<void>
+  isFollowing: (userId: string) => Promise<boolean>
+  getFollowers: (userId: string) => Promise<UserProfile[]>
+  getFollowing: (userId: string) => Promise<UserProfile[]>
 }
 
 // Create the user context
@@ -78,39 +93,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [connected, publicKey])
 
-  // Fetch user profile from API
+  // Fetch user profile from Supabase
   const fetchUserProfile = async (walletAddress: string) => {
     setIsLoading(true)
     setError(null)
 
     try {
-      // In a real app, you would fetch the user profile from your API
-      // For demo purposes, we'll create a mock user
-      const mockUser: UserProfile = {
-        id: `user_${Math.random().toString(36).substring(2, 9)}`,
-        publicKey: walletAddress,
-        username: `user_${walletAddress.substring(0, 6)}`,
-        displayName: "Slydr User",
-        bio: "A passionate collector and creator on Slydr.",
-        avatar: "/placeholder.svg?height=200&width=200",
-        coverImage: "/placeholder.svg?height=800&width=1600",
-        role: "fan",
-        isVerified: false,
-        joinedAt: new Date().toISOString(),
-        socialLinks: {},
-        stats: {
-          followers: 0,
-          following: 0,
-          sales: 0,
-          creations: 0,
-        },
-      }
+      // Try to get user from Supabase
+      const user = await getUserByWallet(walletAddress)
 
-      setUser(mockUser)
-      localStorage.setItem("slydr_user", JSON.stringify(mockUser))
+      if (user) {
+        // User exists, set in state
+        setUser(user)
+        localStorage.setItem("slydr_user", JSON.stringify(user))
+      } else {
+        // User doesn't exist, show onboarding
+        setUser(null)
+      }
     } catch (err) {
-      setError(err instanceof Error ? err : new Error("Failed to fetch user profile"))
-      console.error("Failed to fetch user profile:", err)
+      // User likely doesn't exist yet, which is fine
+      setUser(null)
+      console.log("User not found, needs onboarding")
     } finally {
       setIsLoading(false)
     }
@@ -144,16 +147,92 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setError(null)
 
     try {
-      // In a real app, you would send the updates to your API
-      const updatedUser = { ...user, ...updates }
-      setUser(updatedUser)
-      localStorage.setItem("slydr_user", JSON.stringify(updatedUser))
+      // Update user in Supabase
+      const updatedUser = await updateUser(user.id, updates)
+
+      if (updatedUser) {
+        // Update local state
+        setUser(updatedUser)
+        localStorage.setItem("slydr_user", JSON.stringify(updatedUser))
+      } else {
+        throw new Error("Failed to update profile")
+      }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to update profile"))
       console.error("Failed to update profile:", err)
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Follow a user
+  const followUser = async (userId: string) => {
+    if (!user) throw new Error("You must be logged in to follow users")
+
+    try {
+      const success = await dbFollowUser(user.id, userId)
+
+      if (!success) {
+        throw new Error("Failed to follow user")
+      }
+
+      // Update local stats if they exist
+      if (user.stats) {
+        setUser({
+          ...user,
+          stats: {
+            ...user.stats,
+            following: user.stats.following + 1,
+          },
+        })
+      }
+    } catch (err) {
+      console.error("Error following user:", err)
+      throw err
+    }
+  }
+
+  // Unfollow a user
+  const unfollowUser = async (userId: string) => {
+    if (!user) throw new Error("You must be logged in to unfollow users")
+
+    try {
+      const success = await dbUnfollowUser(user.id, userId)
+
+      if (!success) {
+        throw new Error("Failed to unfollow user")
+      }
+
+      // Update local stats if they exist
+      if (user.stats && user.stats.following > 0) {
+        setUser({
+          ...user,
+          stats: {
+            ...user.stats,
+            following: user.stats.following - 1,
+          },
+        })
+      }
+    } catch (err) {
+      console.error("Error unfollowing user:", err)
+      throw err
+    }
+  }
+
+  // Check if following a user
+  const isFollowing = async (userId: string): Promise<boolean> => {
+    if (!user) return false
+    return dbIsFollowing(user.id, userId)
+  }
+
+  // Get followers of a user
+  const getFollowers = async (userId: string): Promise<UserProfile[]> => {
+    return dbGetFollowers(userId)
+  }
+
+  // Get users that a user is following
+  const getFollowing = async (userId: string): Promise<UserProfile[]> => {
+    return dbGetFollowing(userId)
   }
 
   return (
@@ -163,8 +242,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         login,
-        logout: logout,
+        logout,
         updateProfile,
+        followUser,
+        unfollowUser,
+        isFollowing,
+        getFollowers,
+        getFollowing,
       }}
     >
       {children}

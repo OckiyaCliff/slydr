@@ -190,3 +190,19 @@ export const arweaveService = new ArweaveService({
   appVersion: "1.0.0",
 })
 
+// Add the missing uploadToArweave export
+export const uploadToArweave = async (
+  data: string | Buffer | object,
+  contentType: string,
+  wallet: JWKInterface,
+  tags: { name: string; value: string }[] = [],
+): Promise<string> => {
+  const service = new ArweaveService({
+    wallet,
+    appName: "Slydr",
+    appVersion: "1.0.0",
+  })
+
+  return await service.uploadData(data, contentType, tags)
+}
+

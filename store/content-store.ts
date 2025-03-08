@@ -1,106 +1,43 @@
 import { create } from "zustand"
-import type { ContentMetadata } from "../services/arweave-service"
-import type { PublicKey } from "@solana/web3.js"
+import { getContentById, getContentsByCreator, getTrendingContent, searchContent, recordContentView } from "@/lib/db"
+import type { ContentItem } from "@/types/content"
 
-interface ContentState {
-  contents: ContentMetadata[]
-  featuredContents: ContentMetadata[]
-  trendingContents: ContentMetadata[]
-  userContents: ContentMetadata[]
-  userPurchases: ContentMetadata[]
+interface ContentStore {
+  contents: ContentItem[]
+  trendingContents: ContentItem[]
+  currentContent: ContentItem | null
   isLoading: boolean
   error: string | null
 
   // Actions
-  fetchAllContents: () => Promise<void>
-  fetchContentById: (id: string) => Promise<ContentMetadata | null>
-  fetchContentsByCreator: (creatorId: string) => Promise<ContentMetadata[]>
-  fetchUserContents: (userId: string) => Promise<void>
-  fetchUserPurchases: (userId: string) => Promise<void>
-  createContent: (
-    content: Omit<ContentMetadata, "id" | "createdAt">,
-    mediaFile: File,
-    thumbnailFile: File,
-  ) => Promise<string>
-  purchaseContent: (contentId: string, buyerPublicKey: PublicKey) => Promise<boolean>
-  resellContent: (
-    contentId: string,
-    sellerPublicKey: PublicKey,
-    buyerPublicKey: PublicKey,
-    price: number,
-  ) => Promise<boolean>
+  fetchContents: (creatorId?: string) => Promise<void>
+  fetchTrendingContents: () => Promise<void>
+  fetchContentById: (id: string) => Promise<ContentItem | null>
+  searchContents: (query: string, filters?: any) => Promise<ContentItem[]>
+  createContent: (contentData: any) => Promise<void>
+  viewContent: (contentId: string, userId?: string) => Promise<void>
 }
 
-// Mock function to simulate fetching from Arweave/Solana
-const fetchContentFromBlockchain = async (): Promise<ContentMetadata[]> => {
-  // In a real implementation, this would query the blockchain
-  // For now, return mock data
-  return [
-    {
-      id: "content-1",
-      title: "Cosmic Dreamscape Collection",
-      description: "A mesmerizing digital art collection that explores the boundaries between reality and imagination.",
-      price: 2.5,
-      resaleRights: true,
-      resaleRoyalty: 15,
-      creator: {
-        id: "creator-1",
-        name: "Astral Artisan",
-        username: "astralartist",
-      },
-      category: "Digital Art",
-      tags: ["cosmic", "dreamscape", "digital", "collection"],
-      createdAt: "2023-09-15T14:30:00Z",
-      mediaTransactionId: "mock-arweave-tx-1",
-      thumbnailTransactionId: "mock-arweave-thumbnail-1",
-    },
-    {
-      id: "content-2",
-      title: "Neon Metropolis",
-      description: "A vibrant exploration of future cityscapes, where neon lights illuminate the urban jungle.",
-      price: 1.8,
-      resaleRights: true,
-      resaleRoyalty: 12,
-      creator: {
-        id: "creator-2",
-        name: "Cyber Visionary",
-        username: "cybervisionary",
-      },
-      category: "Digital Art",
-      tags: ["cyberpunk", "neon", "city", "futuristic"],
-      createdAt: "2023-10-05T11:20:00Z",
-      mediaTransactionId: "mock-arweave-tx-2",
-      thumbnailTransactionId: "mock-arweave-thumbnail-2",
-    },
-  ]
-}
-
-export const useContentStore = create<ContentState>((set, get) => ({
+export const useContentStore = create<ContentStore>((set, get) => ({
   contents: [],
-  featuredContents: [],
   trendingContents: [],
-  userContents: [],
-  userPurchases: [],
+  currentContent: null,
   isLoading: false,
   error: null,
 
-  fetchAllContents: async () => {
+  fetchContents: async (creatorId) => {
     set({ isLoading: true, error: null })
+
     try {
-      const contents = await fetchContentFromBlockchain()
+      let contents
 
-      // Sort by creation date for trending (in a real app, this would use more metrics)
-      const trending = [...contents].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      if (creatorId) {
+        contents = await getContentsByCreator(creatorId)
+      } else {
+        contents = await getTrendingContent(50) // Get more if no creator filter
+      }
 
-      // Select a few for featured (in a real app, this would be curated)
-      const featured = contents.slice(0, 2)
-
-      set({
-        contents,
-        trendingContents: trending,
-        featuredContents: featured,
-        isLoading: false,
-      })
+      set({ contents, isLoading: false })
     } catch (error) {
       console.error("Error fetching contents:", error)
       set({
@@ -110,159 +47,92 @@ export const useContentStore = create<ContentState>((set, get) => ({
     }
   },
 
-  fetchContentById: async (id: string) => {
+  fetchTrendingContents: async () => {
     set({ isLoading: true, error: null })
+
     try {
-      // First check if we already have it in state
-      const existingContent = get().contents.find((c) => c.id === id)
-      if (existingContent) {
-        set({ isLoading: false })
-        return existingContent
-      }
+      const trendingContents = await getTrendingContent()
+      set({ trendingContents, isLoading: false })
+    } catch (error) {
+      console.error("Error fetching trending contents:", error)
+      set({
+        error: error instanceof Error ? error.message : "Failed to fetch trending contents",
+        isLoading: false,
+      })
+    }
+  },
 
-      // In a real implementation, this would fetch from Arweave/Solana
-      // For now, use our mock function and filter
-      const contents = await fetchContentFromBlockchain()
-      const content = contents.find((c) => c.id === id) || null
+  fetchContentById: async (id) => {
+    set({ isLoading: true, error: null, currentContent: null })
 
-      set({ isLoading: false })
+    try {
+      const content = await getContentById(id)
+      set({ currentContent: content, isLoading: false })
       return content
     } catch (error) {
-      console.error(`Error fetching content ${id}:`, error)
+      console.error("Error fetching content by ID:", error)
       set({
-        error: error instanceof Error ? error.message : `Failed to fetch content ${id}`,
+        error: error instanceof Error ? error.message : "Failed to fetch content",
         isLoading: false,
       })
       return null
     }
   },
 
-  fetchContentsByCreator: async (creatorId: string) => {
+  searchContents: async (query, filters = {}) => {
     set({ isLoading: true, error: null })
-    try {
-      // In a real implementation, this would fetch from Arweave/Solana
-      // For now, use our mock function and filter
-      const contents = await fetchContentFromBlockchain()
-      const creatorContents = contents.filter((c) => c.creator.id === creatorId)
 
+    try {
+      const results = await searchContent(query, filters)
       set({ isLoading: false })
-      return creatorContents
+      return results
     } catch (error) {
-      console.error(`Error fetching contents for creator ${creatorId}:`, error)
+      console.error("Error searching contents:", error)
       set({
-        error: error instanceof Error ? error.message : `Failed to fetch contents for creator ${creatorId}`,
+        error: error instanceof Error ? error.message : "Failed to search contents",
         isLoading: false,
       })
       return []
     }
   },
 
-  fetchUserContents: async (userId: string) => {
+  createContent: async (contentData) => {
     set({ isLoading: true, error: null })
-    try {
-      // In a real implementation, this would fetch from Arweave/Solana
-      // For now, use our mock function and filter for contents created by this user
-      const contents = await fetchContentFromBlockchain()
-      const userContents = contents.filter((c) => c.creator.id === userId)
 
-      set({ userContents, isLoading: false })
-    } catch (error) {
-      console.error(`Error fetching user contents for ${userId}:`, error)
-      set({
-        error: error instanceof Error ? error.message : `Failed to fetch user contents for ${userId}`,
-        isLoading: false,
+    try {
+      // This would call your API endpoint to create content
+      const response = await fetch("/api/contents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(contentData),
       })
-    }
-  },
 
-  fetchUserPurchases: async (userId: string) => {
-    set({ isLoading: true, error: null })
-    try {
-      // In a real implementation, this would query the blockchain for purchases
-      // For now, return an empty array (or mock data if needed)
-      set({ userPurchases: [], isLoading: false })
-    } catch (error) {
-      console.error(`Error fetching user purchases for ${userId}:`, error)
-      set({
-        error: error instanceof Error ? error.message : `Failed to fetch user purchases for ${userId}`,
-        isLoading: false,
-      })
-    }
-  },
-
-  createContent: async (content, mediaFile, thumbnailFile) => {
-    set({ isLoading: true, error: null })
-    try {
-      // In a real implementation:
-      // 1. Upload media file to Arweave
-      // 2. Upload thumbnail to Arweave
-      // 3. Create content metadata and upload to Arweave
-      // 4. Register content on Solana using Anchor program
-
-      // Mock implementation
-      const id = `content-${Date.now()}`
-      const newContent: ContentMetadata = {
-        ...content,
-        id,
-        createdAt: new Date().toISOString(),
-        mediaTransactionId: `mock-arweave-tx-${id}`,
-        thumbnailTransactionId: `mock-arweave-thumbnail-${id}`,
+      if (!response.ok) {
+        throw new Error("Failed to create content")
       }
 
-      // Add to state
-      set((state) => ({
-        contents: [...state.contents, newContent],
-        isLoading: false,
-      }))
+      // Refresh the contents list
+      if (contentData.creatorId) {
+        await get().fetchContents(contentData.creatorId)
+      }
 
-      return id
+      set({ isLoading: false })
     } catch (error) {
       console.error("Error creating content:", error)
       set({
         error: error instanceof Error ? error.message : "Failed to create content",
         isLoading: false,
       })
-      throw error
     }
   },
 
-  purchaseContent: async (contentId: string, buyerPublicKey: PublicKey) => {
-    set({ isLoading: true, error: null })
+  viewContent: async (contentId, userId) => {
     try {
-      // In a real implementation, this would call the Anchor program
-      // For now, just simulate success
-      console.log(`Simulating purchase of content ${contentId} by ${buyerPublicKey.toString()}`)
-
-      set({ isLoading: false })
-      return true
+      await recordContentView(contentId, userId)
     } catch (error) {
-      console.error(`Error purchasing content ${contentId}:`, error)
-      set({
-        error: error instanceof Error ? error.message : `Failed to purchase content ${contentId}`,
-        isLoading: false,
-      })
-      return false
-    }
-  },
-
-  resellContent: async (contentId: string, sellerPublicKey: PublicKey, buyerPublicKey: PublicKey, price: number) => {
-    set({ isLoading: true, error: null })
-    try {
-      // In a real implementation, this would call the Anchor program
-      // For now, just simulate success
-      console.log(
-        `Simulating resale of content ${contentId} from ${sellerPublicKey.toString()} to ${buyerPublicKey.toString()} for ${price} SOL`,
-      )
-
-      set({ isLoading: false })
-      return true
-    } catch (error) {
-      console.error(`Error reselling content ${contentId}:`, error)
-      set({
-        error: error instanceof Error ? error.message : `Failed to resell content ${contentId}`,
-        isLoading: false,
-      })
-      return false
+      console.error("Error recording content view:", error)
     }
   },
 }))
