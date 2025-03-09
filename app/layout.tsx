@@ -3,17 +3,18 @@ import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
 import { ThemeProvider } from "@/components/theme-provider"
-import Navbar from "@/components/navbar"
-import Footer from "@/components/footer"
 import { WalletProvider } from "@/context/wallet-context"
 import { UserProvider } from "@/context/user-context"
 import { AIProvider } from "@/context/ai-context"
+import Navbar from "@/components/navbar"
+import Footer from "@/components/footer"
+import { BetaBanner } from "@/components/beta-banner"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Slydr - Creator Marketplace",
-  description: "A blockchain-powered creator marketplace where creators can sell content with resale rights",
+  title: "Slydr - Web3 Content Platform",
+  description: "Discover, create, and monetize content with blockchain technology",
     generator: 'v0.dev'
 }
 
@@ -29,8 +30,9 @@ export default function RootLayout({
           <WalletProvider>
             <UserProvider>
               <AIProvider>
-                <div className="flex min-h-screen flex-col">
+                <div className="flex flex-col min-h-screen">
                   <Navbar />
+                  <BetaBanner />
                   <main className="flex-1">{children}</main>
                   <Footer />
                 </div>

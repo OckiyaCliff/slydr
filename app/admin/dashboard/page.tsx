@@ -110,6 +110,7 @@ export default function AdminDashboard() {
         <TabsList className="mb-4">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="content">Content</TabsTrigger>
+          <TabsTrigger value="featured">Featured Content</TabsTrigger>
           <TabsTrigger value="transactions">Transactions</TabsTrigger>
           <TabsTrigger value="settings">Settings</TabsTrigger>
         </TabsList>
@@ -143,6 +144,60 @@ export default function AdminDashboard() {
             </CardContent>
             <CardFooter>
               <Button variant="outline">Export Content</Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="featured">
+          <Card>
+            <CardHeader>
+              <CardTitle>Featured Content Management</CardTitle>
+              <CardDescription>Manage content featured on the homepage and marketplace.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Homepage Featured Content</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select content to feature in the main carousel on the homepage.
+                  </p>
+                  <div className="border rounded-md p-4">
+                    <p className="text-sm text-muted-foreground">
+                      No featured content selected. Connect your database to manage featured content.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Featured Creators</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Select creators to feature in the "Featured Creators" section.
+                  </p>
+                  <div className="border rounded-md p-4">
+                    <p className="text-sm text-muted-foreground">
+                      No featured creators selected. Connect your database to manage featured creators.
+                    </p>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="font-medium mb-2">Trending Content</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Manually override trending content or let the algorithm decide.
+                  </p>
+                  <div className="border rounded-md p-4">
+                    <p className="text-sm text-muted-foreground">
+                      Currently using algorithmic trending. Connect your database to manually manage trending content.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" className="mr-2">
+                Reset to Default
+              </Button>
+              <Button>Save Changes</Button>
             </CardFooter>
           </Card>
         </TabsContent>

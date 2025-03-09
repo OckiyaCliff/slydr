@@ -73,7 +73,8 @@
     "ai": "latest",
     "@supabase/supabase-js": "latest",
     "fs": "latest",
-    "path": "latest"
+    "path": "latest",
+    "@hello-pangea/dnd": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

@@ -33,7 +33,8 @@ export default function ResaleRightsGuide() {
               <Image
                 src="/placeholder.svg?height=600&width=1200"
                 alt="Resale Rights Diagram"
-                fill
+                width={1200}
+                height={600}
                 className="object-cover"
               />
             </div>
@@ -412,7 +413,9 @@ export default function ResaleRightsGuide() {
                 <p className="text-sm text-muted-foreground mb-4">
                   Connect your wallet and explore content you can promote and resell.
                 </p>
-                <Button className="w-full">Explore Marketplace</Button>
+                <Button className="w-full" asChild>
+                  <Link href="/marketplace">Explore Marketplace</Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
