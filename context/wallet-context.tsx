@@ -1,27 +1,18 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { Connection, type PublicKey, type Transaction } from "@solana/web3.js"
-import { PhantomWalletAdapter, SolflareWalletAdapter } from "@solana/wallet-adapter-wallets"
-import type { WalletAdapter, WalletError } from "@solana/wallet-adapter-base"
-
-// Define the network and RPC endpoint
-const SOLANA_NETWORK = "devnet"
-const SOLANA_RPC_ENDPOINT = "https://api.devnet.solana.com"
+import { useAccount, useDisconnect, useSignMessage } from "wagmi"
+import { useWeb3Modal } from "@web3modal/wagmi/react"
+import type { PublicKey } from "@solana/web3.js"
 
 // Define the wallet context type
 interface WalletContextType {
   connected: boolean
   publicKey: PublicKey | null
-  wallet: WalletAdapter | null
-  wallets: WalletAdapter[]
   connecting: boolean
   disconnecting: boolean
-  select: (walletName: string) => void
   connect: () => Promise<void>
   disconnect: () => Promise<void>
-  signTransaction: (transaction: Transaction) => Promise<Transaction>
-  signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>
   signMessage: (message: Uint8Array) => Promise<Uint8Array>
 }
 
@@ -30,117 +21,87 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 // Create a provider component
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [connection] = useState(new Connection(SOLANA_RPC_ENDPOINT))
-  const [wallets] = useState([new PhantomWalletAdapter(), new SolflareWalletAdapter()])
-  const [wallet, setWallet] = useState<WalletAdapter | null>(null)
-  const [connected, setConnected] = useState(false)
+  const { address, isConnected, isConnecting } = useAccount()
+  const { disconnect: wagmiDisconnect, isLoading: isDisconnecting } = useDisconnect()
+  const { signMessageAsync } = useSignMessage()
+  const { open } = useWeb3Modal()
   const [publicKey, setPublicKey] = useState<PublicKey | null>(null)
-  const [connecting, setConnecting] = useState(false)
-  const [disconnecting, setDisconnecting] = useState(false)
+  const [isMounted, setIsMounted] = useState(false)
 
-  // Handle wallet events
+  // Handle client-side only code
   useEffect(() => {
-    if (!wallet) return
+    setIsMounted(true)
+  }, [])
 
-    function onConnect() {
-      if (wallet.publicKey) {
-        setPublicKey(wallet.publicKey)
-        setConnected(true)
+  // Update publicKey when address changes
+  useEffect(() => {
+    if (address && isMounted) {
+      try {
+        // Convert Ethereum address to Solana-compatible PublicKey
+        // This is a simplified approach - in a real app, you might want to derive this differently
+        const addressBuffer = Buffer.from(address.slice(2), "hex")
+        const publicKeyBytes = addressBuffer.slice(0, 32)
+        setPublicKey(new PublicKey(publicKeyBytes))
+      } catch (error) {
+        console.error("Failed to convert address to PublicKey:", error)
+        setPublicKey(null)
       }
-      setConnecting(false)
-    }
-
-    function onDisconnect() {
+    } else {
       setPublicKey(null)
-      setConnected(false)
-      setDisconnecting(false)
     }
+  }, [address, isMounted])
 
-    function onError(error: WalletError) {
-      console.error(error)
-      setConnecting(false)
-      setDisconnecting(false)
-    }
-
-    wallet.on("connect", onConnect)
-    wallet.on("disconnect", onDisconnect)
-    wallet.on("error", onError)
-
-    return () => {
-      wallet.off("connect", onConnect)
-      wallet.off("disconnect", onDisconnect)
-      wallet.off("error", onError)
-    }
-  }, [wallet])
-
-  // Select a wallet by name
-  const select = (walletName: string) => {
-    const selectedWallet = wallets.find((w) => w.name === walletName) || null
-    setWallet(selectedWallet)
-  }
-
-  // Connect to the selected wallet
+  // Connect to wallet
   const connect = async () => {
-    if (!wallet) return
-    setConnecting(true)
+    if (!isMounted) return
     try {
-      await wallet.connect()
+      await open()
     } catch (error) {
-      console.error(error)
-      setConnecting(false)
+      console.error("Failed to connect wallet:", error)
+      throw error
     }
   }
 
-  // Disconnect from the wallet
+  // Disconnect from wallet
   const disconnect = async () => {
-    if (!wallet) return
-    setDisconnecting(true)
+    if (!isMounted) return
     try {
-      await wallet.disconnect()
+      await wagmiDisconnect()
     } catch (error) {
-      console.error(error)
-      setDisconnecting(false)
+      console.error("Failed to disconnect wallet:", error)
+      throw error
     }
-  }
-
-  // Sign a transaction
-  const signTransaction = async (transaction: Transaction): Promise<Transaction> => {
-    if (!wallet || !wallet.signTransaction) {
-      throw new Error("Wallet does not support transaction signing")
-    }
-    return wallet.signTransaction(transaction)
-  }
-
-  // Sign multiple transactions
-  const signAllTransactions = async (transactions: Transaction[]): Promise<Transaction[]> => {
-    if (!wallet || !wallet.signAllTransactions) {
-      throw new Error("Wallet does not support signing multiple transactions")
-    }
-    return wallet.signAllTransactions(transactions)
   }
 
   // Sign a message
   const signMessage = async (message: Uint8Array): Promise<Uint8Array> => {
-    if (!wallet || !wallet.signMessage) {
-      throw new Error("Wallet does not support message signing")
+    if (!isMounted || !isConnected) {
+      throw new Error("Wallet not connected")
     }
-    return wallet.signMessage(message)
+
+    try {
+      const signature = await signMessageAsync({ message })
+      return Buffer.from(signature.slice(2), "hex")
+    } catch (error) {
+      console.error("Failed to sign message:", error)
+      throw error
+    }
+  }
+
+  // Don't expose context until client-side hydration is complete
+  if (!isMounted) {
+    return <>{children}</>
   }
 
   return (
     <WalletContext.Provider
       value={{
-        connected,
+        connected: isConnected,
         publicKey,
-        wallet,
-        wallets,
-        connecting,
-        disconnecting,
-        select,
+        connecting: isConnecting,
+        disconnecting: isDisconnecting,
         connect,
         disconnect,
-        signTransaction,
-        signAllTransactions,
         signMessage,
       }}
     >

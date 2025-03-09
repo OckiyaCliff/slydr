@@ -1,11 +1,9 @@
 import type React from "react"
-import "./globals.css"
 import type { Metadata } from "next"
 import { Inter } from "next/font/google"
-import { ThemeProvider } from "@/components/theme-provider"
-import { WalletProvider } from "@/context/wallet-context"
-import { UserProvider } from "@/context/user-context"
-import { AIProvider } from "@/context/ai-context"
+import "./globals.css"
+import { headers } from "next/headers"
+import ContextProvider from "@/context"
 import Navbar from "@/components/navbar"
 import Footer from "@/components/footer"
 import { BetaBanner } from "@/components/beta-banner"
@@ -23,23 +21,19 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
+  const cookies = headers().get("cookie")
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <WalletProvider>
-            <UserProvider>
-              <AIProvider>
-                <div className="flex flex-col min-h-screen">
-                  <Navbar />
-                  <BetaBanner />
-                  <main className="flex-1">{children}</main>
-                  <Footer />
-                </div>
-              </AIProvider>
-            </UserProvider>
-          </WalletProvider>
-        </ThemeProvider>
+        <ContextProvider cookies={cookies}>
+          <div className="flex flex-col min-h-screen">
+            <Navbar />
+            <BetaBanner />
+            <main className="flex-1">{children}</main>
+            <Footer />
+          </div>
+        </ContextProvider>
       </body>
     </html>
   )

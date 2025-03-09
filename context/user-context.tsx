@@ -11,6 +11,7 @@ import {
   getFollowers as dbGetFollowers,
   getFollowing as dbGetFollowing,
 } from "@/lib/db"
+import { toast } from "@/hooks/use-toast"
 
 // Define user types
 export type UserRole = "creator" | "fan" | "admin" | "artist" | "musician" | "writer" | "podcaster" | "filmmaker"
@@ -64,9 +65,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<Error | null>(null)
+  const [isMounted, setIsMounted] = useState(false)
+
+  // Handle client-side only code
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
 
   // Check for existing session on mount
   useEffect(() => {
+    if (!isMounted) return
+
     const checkSession = async () => {
       try {
         // In a real app, you would check for a valid session token
@@ -80,10 +89,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
 
     checkSession()
-  }, [])
+  }, [isMounted])
 
   // Update user when wallet connects/disconnects
   useEffect(() => {
+    if (!isMounted) return
+
     if (connected && publicKey) {
       fetchUserProfile(publicKey.toString())
     } else if (!connected) {
@@ -91,10 +102,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null)
       localStorage.removeItem("slydr_user")
     }
-  }, [connected, publicKey])
+  }, [connected, publicKey, isMounted])
 
   // Fetch user profile from Supabase
   const fetchUserProfile = async (walletAddress: string) => {
+    if (!isMounted) return
+
     setIsLoading(true)
     setError(null)
 
@@ -106,9 +119,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // User exists, set in state
         setUser(user)
         localStorage.setItem("slydr_user", JSON.stringify(user))
+        toast({
+          title: "Welcome back!",
+          description: `Logged in as ${user.display_name || user.username}`,
+        })
       } else {
         // User doesn't exist, show onboarding
         setUser(null)
+        toast({
+          title: "Welcome to Slydr!",
+          description: "Please complete your profile to get started.",
+        })
       }
     } catch (err) {
       // User likely doesn't exist yet, which is fine
@@ -121,6 +142,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Login function
   const login = async () => {
+    if (!isMounted) return
+
     try {
       if (!connected) {
         await connect()
@@ -129,19 +152,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to login"))
       console.error("Login failed:", err)
+      toast({
+        title: "Login failed",
+        description: "Could not connect to your wallet. Please try again.",
+        variant: "destructive",
+      })
     }
   }
 
   // Logout function
   const logout = () => {
+    if (!isMounted) return
+
     disconnect()
     setUser(null)
     localStorage.removeItem("slydr_user")
+    toast({
+      title: "Logged out",
+      description: "You've been successfully logged out.",
+    })
   }
 
   // Update user profile
   const updateProfile = async (updates: Partial<UserProfile>) => {
-    if (!user) return
+    if (!user || !isMounted) return
 
     setIsLoading(true)
     setError(null)
@@ -154,12 +188,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
         // Update local state
         setUser(updatedUser)
         localStorage.setItem("slydr_user", JSON.stringify(updatedUser))
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated.",
+        })
       } else {
         throw new Error("Failed to update profile")
       }
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to update profile"))
       console.error("Failed to update profile:", err)
+      toast({
+        title: "Update failed",
+        description: "Could not update your profile. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -167,7 +210,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Follow a user
   const followUser = async (userId: string) => {
-    if (!user) throw new Error("You must be logged in to follow users")
+    if (!user || !isMounted) throw new Error("You must be logged in to follow users")
 
     try {
       const success = await dbFollowUser(user.id, userId)
@@ -186,15 +229,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
           },
         })
       }
+
+      toast({
+        title: "User followed",
+        description: "You are now following this user.",
+      })
     } catch (err) {
       console.error("Error following user:", err)
+      toast({
+        title: "Follow failed",
+        description: "Could not follow this user. Please try again.",
+        variant: "destructive",
+      })
       throw err
     }
   }
 
   // Unfollow a user
   const unfollowUser = async (userId: string) => {
-    if (!user) throw new Error("You must be logged in to unfollow users")
+    if (!user || !isMounted) throw new Error("You must be logged in to unfollow users")
 
     try {
       const success = await dbUnfollowUser(user.id, userId)
@@ -213,26 +266,43 @@ export function UserProvider({ children }: { children: ReactNode }) {
           },
         })
       }
+
+      toast({
+        title: "User unfollowed",
+        description: "You are no longer following this user.",
+      })
     } catch (err) {
       console.error("Error unfollowing user:", err)
+      toast({
+        title: "Unfollow failed",
+        description: "Could not unfollow this user. Please try again.",
+        variant: "destructive",
+      })
       throw err
     }
   }
 
   // Check if following a user
   const isFollowing = async (userId: string): Promise<boolean> => {
-    if (!user) return false
+    if (!user || !isMounted) return false
     return dbIsFollowing(user.id, userId)
   }
 
   // Get followers of a user
   const getFollowers = async (userId: string): Promise<UserProfile[]> => {
+    if (!isMounted) return []
     return dbGetFollowers(userId)
   }
 
   // Get users that a user is following
   const getFollowing = async (userId: string): Promise<UserProfile[]> => {
+    if (!isMounted) return []
     return dbGetFollowing(userId)
+  }
+
+  // Don't expose context until client-side hydration is complete
+  if (!isMounted) {
+    return <>{children}</>
   }
 
   return (

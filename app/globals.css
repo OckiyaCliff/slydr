@@ -16,8 +16,8 @@
     --secondary-foreground: 240 5.9% 10%;
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     --border: 240 5.9% 90%;
@@ -39,7 +39,7 @@
     --secondary-foreground: 0 0% 98%;
     --muted: 240 3.7% 15.9%;
     --muted-foreground: 240 5% 64.9%;
-    --accent: 240 3.7% 15.9%;
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
@@ -73,4 +73,19 @@
   width: max-content;
   animation: marquee 30s linear infinite;
 }
+
+/* Purple accent styles */
+.purple-glow {
+  box-shadow: 0 0 15px 2px rgba(149, 76, 233, 0.5);
+}
+
+.purple-gradient {
+  background: linear-gradient(135deg, #8a2be2 0%, #954ce9 100%);
+}
+
+.purple-text {
+  color: #954ce9;
+}
+
+/* Add any other global styles here */
 
